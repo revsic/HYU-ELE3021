@@ -116,3 +116,14 @@ if (token == MLFQ_TOKEN) {
     stride_update(strided, p->state == DONE);
 }
 ```
+
+## Implementation
+
+proc.c에 따르면 ptable.proc에 값을 쓰는건 allocproc 함수에서
+=> allocproc에서 scheduler에 등록하면 바로 확인 가능.
+
+**queue 구성**
+
+1. linked list
+2. array (push down: move all elem)
+3. array (state-base: UNUSED) -> proc table
