@@ -10,6 +10,8 @@ struct sleeplock;
 struct stat;
 struct superblock;
 
+struct mlfq;
+
 // bio.c
 void            binit(void);
 struct buf*     bread(uint, uint);
@@ -185,6 +187,13 @@ void            switchuvm(struct proc*);
 void            switchkvm(void);
 int             copyout(pde_t*, uint, void*, uint);
 void            clearpteu(pde_t *pgdir, char *uva);
+
+// mlfq.c
+int             mlfq_init(struct mlfq*, int, unsigned long long*, unsigned long long*, unsigned long long);
+int             mlfq_default(struct mlfq*);
+int             mlfq_append(struct mlfq*, struct proc*);
+struct proc*    mlfq_top(struct mlfq*);
+int             mlfq_update(struct mlfq*, struct proc*, int);
 
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x)/sizeof((x)[0]))
