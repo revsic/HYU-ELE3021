@@ -122,6 +122,44 @@ if (token == MLFQ_TOKEN) {
 proc.c에 따르면 ptable.proc에 값을 쓰는건 allocproc 함수에서
 => allocproc에서 scheduler에 등록하면 바로 확인 가능.
 
+process state 수정: allocproc, userinit, fork, exit, wait, scheduler, yield, sleep, wakeup1, kill
+ptable 접근: pinit, allocproc, userinit, fork, exit, wait, scheduler, yield, forkret, sleep, wakeup1, wakeup, kill, procdump
+
+- pinit: lock initialization
+- allocproc: proc struct 설정하고, ptable의 unused 공간에 할당
+    - acquire, release, iteration
+    - ptable unused proc -> EMBRYO, pid alloc
+- userinit: initproc 생성
+    - acquire, release
+    - initproc->state = RUNNABLE
+- fork: process duplication
+    - acquire, release, iteration
+    - np->state = RUNNABLE
+- exit: process termination, 프로세스를 직접 정리하지 않고, zombie로 둔 다음에 부모에서 wait을 통해 하위 프로세스를 정리하는 방식.
+    - acquire -> wakeup1(parent)
+    - child->parent = initproc, child->state == ZOMBIE -> wakeup1(initproc)
+    - curproc->state = ZOMBIE, sched
+- wait: wait for child process
+    - acquire, release, iteration
+    - p->parent == curproc & p->state == ZOMBIE -> process 정리 (p->state = UNUSED)
+- scheduler: process scheduling
+    - acquire, release, iteration
+    - p->state = RUNNING
+- yield: give up cpu owning
+    - acquire, release
+    - myproc()->state = RUNNABLE
+- forkret: forked child return address
+    - release
+- sleep: assign channel to current proc, change state to sleeping, sched
+    - acquire, release
+    - p->chan = chan, p->state = SLEEPING
+- wakup1: wakup all proc relative to given channel
+    - iteration
+- wakeup: locked version of wakup1
+    - acquire, release, iteration
+- kill: make process killed flag on, make state runnable if sleeping
+    - acquire, release, iteration
+
 **queue 구성**
 
 1. linked list
