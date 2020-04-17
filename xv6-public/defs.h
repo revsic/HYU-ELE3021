@@ -189,11 +189,12 @@ int             copyout(pde_t*, uint, void*, uint);
 void            clearpteu(pde_t *pgdir, char *uva);
 
 // mlfq.c
-int             mlfq_init(struct mlfq*, int, unsigned long long*, unsigned long long*, unsigned long long);
+void            mlfq_init(struct mlfq*, int, uint*, uint*, uint long);
 int             mlfq_default(struct mlfq*);
 int             mlfq_append(struct mlfq*, struct proc*);
 struct proc*    mlfq_top(struct mlfq*);
 int             mlfq_update(struct mlfq*, struct proc*, int);
+void            mlfq_scheduler(struct mlfq*, struct spinlock*)
 
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x)/sizeof((x)[0]))
