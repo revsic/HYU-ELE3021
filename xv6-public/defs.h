@@ -191,8 +191,9 @@ void            clearpteu(pde_t *pgdir, char *uva);
 // mlfq.c
 void            mlfq_init(struct mlfq*, int, uint*, uint*);
 void            mlfq_default(struct mlfq*);
-int             mlfq_append(struct mlfq*, struct proc*);
-int             mlfq_update(struct mlfq*, struct proc*, int);
+int             mlfq_append(struct mlfq*, struct proc*, int);
+void            mlfq_delete(struct mlfq*, struct proc*);
+int             mlfq_update(struct mlfq*, struct proc*);
 void            mlfq_scheduler(struct mlfq*, struct spinlock*) __attribute__((noreturn));
 
 // number of elements in fixed-size array
