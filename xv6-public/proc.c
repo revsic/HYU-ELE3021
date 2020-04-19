@@ -2,6 +2,7 @@
 #include "defs.h"
 #include "param.h"
 #include "memlayout.h"
+#include "mlfq.h"
 #include "mmu.h"
 #include "x86.h"
 #include "proc.h"
@@ -322,6 +323,10 @@ wait(void)
 void
 scheduler(void)
 {
+  // struct mlfq mlfq;
+  // mlfq_default(&mlfq);
+  // mlfq_scheduler(&mlfq, &ptable.lock);
+
   struct proc *p;
   struct cpu *c = mycpu();
   c->proc = 0;
