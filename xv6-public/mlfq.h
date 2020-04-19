@@ -1,10 +1,10 @@
 struct mlfq {
   int num_queue;
-  int sizes[NMLFQ];
-  struct proc* queue[NMLFQ][NPROC];
+  uint boost;
   uint quantum[NMLFQ];
   uint expire[NMLFQ];
-  uint boost;
+  struct proc* queue[NMLFQ][NPROC];
+  struct proc** current[NMLFQ];
 };
 
 enum mlfqstate {
