@@ -122,6 +122,32 @@ if (token == MLFQ_TOKEN) {
 proc.c에 따르면 ptable.proc에 값을 쓰는건 allocproc 함수에서
 => allocproc에서 scheduler에 등록하면 바로 확인 가능.
 
+**push down vs iteration**
+
+1. linked list
+2. array (push down: move all elem)
+3. array (state-base: UNUSED) -> proc table
+
+proc.c에서 ptable.proc의 iteration 과정을 보면 c++의 배열에 정의된 std::begin, end와 동일히 작동. indexing이 아닌 pointer의 증가연산을 통해 작동. 컴파일러 최적화 수준마다 다르겠지만, 두 선택지에 대한 operation 갯수가 indexing에서 더 많아짐. 
+
+ptable.proc에서는 여기에 push down 없이 단순 UNUSED slot에 추가하는 방식. 이 때 scheduler의 iteration은 ptable에 lock을 걸고 순회하기 때문에 RR을 구현할 수 있었음.
+
+mlfq의 경우에도 사실 이처럼 작동해도 무관함. 그럴 경우 mlfq의 array가 struct { state, proc* }로 구성되어야 하고, 이럴 경우엔느 elapsed time을 proc에서 mlfq로 이동해도 됨.
+- 장점: proc 4byte 경량화, xv6 coding style에 맞음
+- 단점: mlfq struct가 무거워짐, append 내부 search 과정에서 배열 순회 요구 O(N = 64)
+
+반면에 push down approach가 이뤄질 경우
+- 장점: indexing 단순화
+- 단점: append, update 내부 update 과정에서 배열 순회 요구 O(N = 64)
+
+**TODO: cache hit**
+
+현재 mflq는 proc*[NMLFQ][NPROC]으로 구성되어 있는데, ptable.proc에서는 iteration이 연속된 메모리에서 일어나 cache hit가 용이한 대신, mlfq는 포인터로 비연속적인 공간을 linked list와 같이 탐색하기 때문에 cache hit가 어려움. 확인 요구
+
+**ptable lock**
+
+현재 scheduler는 lock 상태에서 context switch를 하는데, 이래도 multiprocessor 환경에서 병목이 일어나지 않는 이유는, [yield ->] sched -> swtch 순서로 context switch가 일어나는데, 이 때 sched는 lock이 걸려 있는지 확인하고, yield에서는 lock이 걸린채로 이뤄진 context switch 후에 release를 하고, user procedure로 넘어가기 때문.
+
 process state 수정: allocproc, userinit, fork, exit, wait, scheduler, yield, sleep, wakeup1, kill
 ptable 접근: pinit, allocproc, userinit, fork, exit, wait, scheduler, yield, forkret, sleep, wakeup1, wakeup, kill, procdump
 
@@ -159,9 +185,3 @@ ptable 접근: pinit, allocproc, userinit, fork, exit, wait, scheduler, yield, f
     - acquire, release, iteration
 - kill: make process killed flag on, make state runnable if sleeping
     - acquire, release, iteration
-
-**queue 구성**
-
-1. linked list
-2. array (push down: move all elem)
-3. array (state-base: UNUSED) -> proc table
