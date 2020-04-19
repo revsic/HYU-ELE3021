@@ -93,7 +93,7 @@ found:
   p->state = EMBRYO;
   p->pid = nextpid++;
 
-  mlfq_append(&mlfq, p);
+  mlfq_append(&mlfq, p, 0);
 
   release(&ptable.lock);
 
@@ -301,6 +301,7 @@ wait(void)
         p->name[0] = 0;
         p->killed = 0;
         p->state = UNUSED;
+        mlfq_delete(&mlfq, p);
         release(&ptable.lock);
         return pid;
       }
