@@ -176,14 +176,14 @@ proc.c의 kill은 myproc을 직접 정리하지 않고 p->killed=1 & p->state=ru
 
 **TODO**
 
-[x] MLFQ without expire
-[x] mlfq_append to allocproc
-[x] tick (elapsed)
-[x] mlfq_update
-[x] mlfq_update to scheduler, wait 
-[x] expire
-[ ] boost
-~~[ ] cmostime 확인~~
+- [x] MLFQ without expire
+- [x] mlfq_append to allocproc
+- [x] tick (elapsed)
+- [x] mlfq_update
+- [x] mlfq_update to scheduler, wait 
+- [x] expire
+- [ ] boost
+- ~~[ ] cmostime 확인~~
 
 **appendix**
 
