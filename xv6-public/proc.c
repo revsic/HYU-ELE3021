@@ -13,6 +13,8 @@ struct {
   struct proc proc[NPROC];
 } ptable;
 
+struct mlfq mlfq;
+
 static struct proc *initproc;
 
 int nextpid = 1;
@@ -25,6 +27,7 @@ void
 pinit(void)
 {
   initlock(&ptable.lock, "ptable");
+  mlfq_default(&mlfq);
 }
 
 // Must be called with interrupts disabled
@@ -89,6 +92,8 @@ allocproc(void)
 found:
   p->state = EMBRYO;
   p->pid = nextpid++;
+
+  mlfq_append(&mlfq, p);
 
   release(&ptable.lock);
 
@@ -323,8 +328,6 @@ wait(void)
 void
 scheduler(void)
 {
-  // struct mlfq mlfq;
-  // mlfq_default(&mlfq);
   // mlfq_scheduler(&mlfq, &ptable.lock);
 
   struct proc *p;
