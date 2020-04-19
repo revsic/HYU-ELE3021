@@ -98,9 +98,9 @@ mlfq_scheduler(struct mlfq* this, struct spinlock* lock)
     sti();
 
     acquire(lock);
-    for (i = 0; i < this->num_queue; ++i) {
+    for (i = 0; i < this->num_queue;) {
       found = 0;
-      for (iter = this->queue[i]; iter != &this->queue[i][NCPU]; ++iter) {
+      for (iter = this->queue[i]; iter != &this->queue[i][NCPU];) {
         if ((*iter)->state != RUNNABLE)
           continue;
 
@@ -120,13 +120,13 @@ mlfq_scheduler(struct mlfq* this, struct spinlock* lock)
 
         p->mlfq.elapsed += ticks;
         result = mlfq_update(this, p);
-        if (result == MLFQ_KEEP)
-          --iter;
-        else if (result != MLFQ_NEXT)
+        if (result == MLFQ_NEXT)
+          ++iter;
+        else if (result != MLFQ_KEEP)
           panic("error in mlfq.c:line125");
       }
 
-      if (found)
+      if (!found)
         ++i;
     }
     release(lock);
