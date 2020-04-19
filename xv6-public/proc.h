@@ -51,10 +51,10 @@ struct proc {
   char name[16];               // Process name (debugging)
 
   struct {
-    int qulevel;
-    int queindex;
-    unsigned long long elapsed;
-  } sched;
+    int level;
+    int index;
+    uint elapsed;
+  } mlfq;
 };
 
 // Process memory is laid out contiguously, low addresses first:
