@@ -8,6 +8,8 @@
 #include "proc.h"
 #include "spinlock.h"
 
+extern int sys_uptime(void);
+
 void
 mlfq_init(struct mlfq* this, int num_queue, uint* rr, uint* expire)
 {
@@ -33,11 +35,11 @@ mlfq_default(struct mlfq* this)
 }
 
 int
-mlfq_append(struct mlfq* this, struct proc* p)
+mlfq_append(struct mlfq* this, struct proc* p, int level)
 {
   struct proc** iter;
 
-  for (iter = this->queue[0]; iter != &this->queue[0][NPROC]; ++iter)
+  for (iter = this->queue[level]; iter != &this->queue[level][NPROC]; ++iter)
     if (*iter == 0)
       goto found;
 
@@ -46,22 +48,47 @@ mlfq_append(struct mlfq* this, struct proc* p)
 found:
   *iter = p;
 
-  p->mlfq.level = 0;
-  p->mlfq.index = (iter - this->queue[0]) / sizeof(iter);
+  p->mlfq.level = level;
+  p->mlfq.index = (iter - this->queue[level]) / sizeof iter;
   p->mlfq.elapsed = 0;
   return MLFQ_SUCCESS;
 }
 
-int
-mlfq_update(struct mlfq* this, struct proc* p, int done)
+void
+mlfq_delete(struct mlfq* this, struct proc* p)
 {
-  return 0;
+  this->queue[p->mlfq.level][p->mlfq.index] = 0;  
+}
+
+int
+mlfq_update(struct mlfq* this, struct proc* p)
+{
+  int result;
+  int level = p->mlfq.level;
+  int index = p->mlfq.index;
+
+  if (p->state == ZOMBIE || p->killed)
+    // queue is cleared in function wait.
+    return MLFQ_NEXT;
+
+  if (level + 1 < this->num_queue && p->mlfq.elapsed >= this->expire[level]) {
+    result = mlfq_append(this, p, level + 1);
+    if (result == MLFQ_SUCCESS) {
+      this->queue[level][index] = 0;
+      return MLFQ_NEXT;
+    }
+
+    return result;
+  }
+
+  return MLFQ_KEEP;
 }
 
 void
 mlfq_scheduler(struct mlfq* this, struct spinlock* lock)
 {
-  int i, found;
+  int i, found, result;
+  uint ticks;
   struct proc* p;
   struct proc** iter;
   struct cpu* c = mycpu();
@@ -84,15 +111,23 @@ mlfq_scheduler(struct mlfq* this, struct spinlock* lock)
         switchuvm(p);
         p->state = RUNNING;
 
+        ticks = sys_uptime();
         swtch(&(c->scheduler), p->context);
+        ticks = sys_uptime() - ticks;
+
         switchkvm();
-
         c->proc = 0;
+
+        p->mlfq.elapsed += ticks;
+        result = mlfq_update(this, p);
+        if (result == MLFQ_KEEP)
+          --iter;
+        else if (result != MLFQ_NEXT)
+          panic("error in mlfq.c:line125");
       }
 
-      if (found) {
-        --i;
-      }
+      if (found)
+        ++i;
     }
     release(lock);
   }
