@@ -8,4 +8,6 @@ struct mlfq {
 enum mlfqstate {
   MLFQ_SUCCESS = 0,
   MLFQ_FULL_QUEUE = 1,
+  MLFQ_NEXT = 2,
+  MLFQ_KEEP = 3,
 };
