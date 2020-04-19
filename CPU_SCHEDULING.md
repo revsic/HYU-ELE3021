@@ -130,15 +130,19 @@ proc.c에 따르면 ptable.proc에 값을 쓰는건 allocproc 함수에서
 
 proc.c에서 ptable.proc의 iteration 과정을 보면 c++의 배열에 정의된 std::begin, end와 동일히 작동. indexing이 아닌 pointer의 증가연산을 통해 작동. 컴파일러 최적화 수준마다 다르겠지만, 두 선택지에 대한 operation 갯수가 indexing에서 더 많아짐. 
 
-ptable.proc에서는 여기에 push down 없이 단순 UNUSED slot에 추가하는 방식. 이 때 scheduler의 iteration은 ptable에 lock을 걸고 순회하기 때문에 RR을 구현할 수 있었음.
+ptable.proc에서는 여기에 push down 없이 단순 UNUSED slot에 추가하는 방식. 이 때 scheduler는 approximated RR이 되는데, 이 이유는 프로세스들이 생성 순으로 proc array에 저장되는 것이 아닌, proc array의 빈공간에 순서대로 채워지기 때문임.
 
-mlfq의 경우에도 사실 이처럼 작동해도 무관함. 그럴 경우 mlfq의 array가 struct { state, proc* }로 구성되어야 하고, 이럴 경우엔느 elapsed time을 proc에서 mlfq로 이동해도 됨.
+mlfq의 경우에도 사실 이처럼 작동해도 무관함. 그럴 경우 mlfq의 array가 struct { state, proc* }로 구성되어야 하고, 이럴 경우에는 elapsed time을 proc에서 mlfq로 이동해도 됨.
 - 장점: proc 4byte 경량화, xv6 coding style에 맞음
 - 단점: mlfq struct가 무거워짐, append 내부 search 과정에서 배열 순회 요구 O(N = 64)
 
-반면에 push down approach가 이뤄질 경우
+***반면에 push down approach가 이뤄질 경우***
 - 장점: indexing 단순화
 - 단점: append, update 내부 update 과정에서 배열 순회 요구 O(N = 64)
+
+approximated push down (current index)
+- 장점: pushdown 없이 iteration으로 real RR 구현이 가능함
+- 단점: current indices를 담을 array, 반복 루틴이 2개가 필요 (ring 형태)
 
 **TODO: cache hit**
 
@@ -147,6 +151,28 @@ mlfq의 경우에도 사실 이처럼 작동해도 무관함. 그럴 경우 mlfq
 **ptable lock**
 
 현재 scheduler는 lock 상태에서 context switch를 하는데, 이래도 multiprocessor 환경에서 병목이 일어나지 않는 이유는, [yield ->] sched -> swtch 순서로 context switch가 일어나는데, 이 때 sched는 lock이 걸려 있는지 확인하고, yield에서는 lock이 걸린채로 이뤄진 context switch 후에 release를 하고, user procedure로 넘어가기 때문.
+
+**process 생애주기**
+
+allocproc에 의해 process 생성, ptable에 접근하여 UNUSED proc에 대해 새로 process를 구성함. state=EMBYRO, pid=nextpid++로 두고 context를 초기화, rop로 forkret과 trapret을 리턴하게 구성함. fork 등은 allocproc으로 만든 proc 구조체에 uvm을 복사하여 사용하는 형식.
+
+kernel은 userinit을 통해 initproc을 만드는데, init은 fork(child) - exec(shell) - exec(proc)를 통해 새로운 process를 자식 프로세스로 두고, fork(parent) - wait loop을 통해 자식 프로세스의 종료를 정리한다.
+
+exit은 자식 프로세스와 본인의 proc state를 ZOMBIE로 두고, 자식 프로세스의 parent를 init으로 두어 프로세스가 모두 init 내 wait을 통해 정리될 수 있게 한다. wait은 자식 프로세스 중 ZOMBIE인 모든 프로세스의 자원을 free하고 state를 UNUSED로 변경한다. 
+
+즉 프로세스의 생성은 allocproc에서, 종료는 wait에서 확인할 수 있다. 또한, yield된 프로세스는 scheduler로 context switch가 발생하므로 scheduler를 통해 확인할 수 있다.
+
+**TODO**
+
+[x] MLFQ without expire
+[ ] mlfq_append to allocproc
+[ ] mlfq_update
+[ ] mlfq_update to scheduler, wait 
+[ ] tick (elapsed)
+[ ] expire
+[ ] boost
+
+**appendix**
 
 process state 수정: allocproc, userinit, fork, exit, wait, scheduler, yield, sleep, wakeup1, kill
 ptable 접근: pinit, allocproc, userinit, fork, exit, wait, scheduler, yield, forkret, sleep, wakeup1, wakeup, kill, procdump
