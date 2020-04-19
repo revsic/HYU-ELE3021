@@ -162,15 +162,28 @@ exit은 자식 프로세스와 본인의 proc state를 ZOMBIE로 두고, 자식 
 
 즉 프로세스의 생성은 allocproc에서, 종료는 wait에서 확인할 수 있다. 또한, yield된 프로세스는 scheduler로 context switch가 발생하므로 scheduler를 통해 확인할 수 있다.
 
+**tick**
+
+trap.c를 보면 `tickslock: struct spinlock`과 `ticks: uint`가 있는데, 이는 timer interrupt가 발생할 떄 마다 tick을 증가시키고, 해당 tick을 channel로 가지고 있는 모든 process를 runnable하게 한다.
+
+즉 tick은 운영체제가 시작한 후 매 10ms 마다 1씩 증가하는 정수인 것이고, 32bit OS에서 42억까지 표현 가능하므로 대략 486일 정도에 한번 overflow가 발생한다. uptime syscall은 이 tick을 반환하는 역할을 한다.
+
+proc.c의 sleep은 channel을 tick으로, state를 SLEEPING으로 설정한 후 sched를 호출하는데, sleep syscall은 proc의 sleep을 활용하여 주어진 시간 이상이 지날 때 까지 sleep을 계속 호출한다.
+
+**kill**
+
+proc.c의 kill은 myproc을 직접 정리하지 않고 p->killed=1 & p->state=runnable 상태로 만드는데, 이에 대해 exit을 호출하는 주체는 trap이다. syscall이나 timer interrupt가 들어왔을 때 해당 프로세스가 user 영역에 있으면 exit을 force해버린다.
+
 **TODO**
 
 [x] MLFQ without expire
-[ ] mlfq_append to allocproc
-[ ] mlfq_update
-[ ] mlfq_update to scheduler, wait 
-[ ] tick (elapsed)
-[ ] expire
+[x] mlfq_append to allocproc
+[x] tick (elapsed)
+[x] mlfq_update
+[x] mlfq_update to scheduler, wait 
+[x] expire
 [ ] boost
+[ ] cmostime 확인
 
 **appendix**
 
