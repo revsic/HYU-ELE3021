@@ -24,5 +24,5 @@ main(int argc, char* argv[])
   if (pid > 0) {
     wait();
   }
-  return 0;
+  exit();
 }
