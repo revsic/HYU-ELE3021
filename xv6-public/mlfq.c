@@ -127,6 +127,8 @@ mlfq_scheduler(struct mlfq* this, struct spinlock* lock)
 
       if (!found)
         ++i;
+      else
+        i = 0;
     }
     release(lock);
   }
