@@ -5,15 +5,18 @@ SRCS = \
 	main.cpp\
 	mlfq.cpp
 
-OBJS = $(SRCS:.cpp=.o)
+OBJS = $(addprefix build/, $(SRCS:.cpp=.o))
 
 all: unittest
 
-%.o: %.cpp
+build:
+	mkdir build
+
+build/%.o: %.cpp
 	$(CXX) $(CXXFLAGS) -o $@ -c $^
 
-unittest: $(OBJS)
-	$(CXX) $(CXXFLAGS) -o unittest $^
+unittest: build $(OBJS)
+	$(CXX) $(CXXFLAGS) -o unittest $(OBJS)
 
 clean:
-	rm unittest *.o
+	rm unittest build/*.o
