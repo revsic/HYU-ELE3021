@@ -8,6 +8,9 @@
 #include "proc.h"
 #include "spinlock.h"
 
+// extern int sys_uptime(void);
+// #define TEST(x) if (!(x)) { cprintf("line %d, %s\n", __LINE__, #x); panic("testerror"); }
+
 struct {
   struct spinlock lock;
   struct proc proc[NPROC];
@@ -94,6 +97,7 @@ found:
   p->pid = nextpid++;
 
   mlfq_append(&mlfq, p, 0);
+  cprintf("append %d %d\n", p->mlfq.level, p->mlfq.index);
 
   release(&ptable.lock);
 
@@ -301,6 +305,7 @@ wait(void)
         p->name[0] = 0;
         p->killed = 0;
         p->state = UNUSED;
+        cprintf("deleted %d %d\n", p->mlfq.level, p->mlfq.index);
         mlfq_delete(&mlfq, p);
         release(&ptable.lock);
         return pid;
@@ -329,39 +334,39 @@ wait(void)
 void
 scheduler(void)
 {
-  // mlfq_scheduler(&mlfq, &ptable.lock);
+  mlfq_scheduler(&mlfq, &ptable.lock);
 
-  struct proc *p;
-  struct cpu *c = mycpu();
-  c->proc = 0;
+  // struct proc *p;
+  // struct cpu *c = mycpu();
+  // c->proc = 0;
   
-  for(;;){
-    // Enable interrupts on this processor.
-    sti();
+  // for(;;){
+  //   // Enable interrupts on this processor.
+  //   sti();
 
-    // Loop over process table looking for process to run.
-    acquire(&ptable.lock);
-    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-      if(p->state != RUNNABLE)
-        continue;
+  //   // Loop over process table looking for process to run.
+  //   acquire(&ptable.lock);
+  //   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+  //     if(p->state != RUNNABLE)
+  //       continue;
 
-      // Switch to chosen process.  It is the process's job
-      // to release ptable.lock and then reacquire it
-      // before jumping back to us.
-      c->proc = p;
-      switchuvm(p);
-      p->state = RUNNING;
+  //     // Switch to chosen process.  It is the process's job
+  //     // to release ptable.lock and then reacquire it
+  //     // before jumping back to us.
+  //     c->proc = p;
+  //     switchuvm(p);
+  //     p->state = RUNNING;
 
-      swtch(&(c->scheduler), p->context);
-      switchkvm();
+  //     swtch(&(c->scheduler), p->context);
+  //     switchkvm();
 
-      // Process is done running for now.
-      // It should have changed its p->state before coming back.
-      c->proc = 0;
-    }
-    release(&ptable.lock);
+  //     // Process is done running for now.
+  //     // It should have changed its p->state before coming back.
+  //     c->proc = 0;
+  //   }
+  //   release(&ptable.lock);
 
-  }
+  // }
 }
 
 // Enter scheduler.  Must hold only ptable.lock
