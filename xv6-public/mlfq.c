@@ -85,15 +85,52 @@ mlfq_update(struct mlfq* this, struct proc* p)
 }
 
 void
+mlfq_boost(struct mlfq* this)
+{
+  int found;
+  struct proc* p;
+  struct proc** top = this->queue[0];
+  struct proc** lower = this->queue[1];
+
+  for (; lower != &this->queue[this->num_queue - 1][NPROC]; ++lower) {
+    if (*lower == 0)
+      continue;
+
+    found = 0;
+    for (; top != &this->queue[0][NPROC]; ++top) {
+      if (*top != 0)
+        continue;
+      
+      *top = *lower;
+      *lower = 0;
+
+      p = *top;
+      cprintf("boost %d %d -> 0 %d\n", p->mlfq.level, p->mlfq.index, top - this->queue[0]);
+      
+      p->mlfq.level = 0;
+      p->mlfq.index = top - this->queue[0];
+      p->mlfq.elapsed = 0;
+
+      found = 1;
+      break;
+    }
+
+    if (!found)
+      panic("mlfq boost: could not find empty space of toplevel queue");
+  }
+}
+
+void
 mlfq_scheduler(struct mlfq* this, struct spinlock* lock)
 {
-  int i, found, result;
-  uint ticks;
+  int i, found;
+  uint start, end, boost;
   struct proc* p;
   struct proc** iter;
   struct cpu* c = mycpu();
   c->proc = 0;
 
+  boost = this->expire[2];
   for (;;) {
     sti();
 
@@ -111,18 +148,21 @@ mlfq_scheduler(struct mlfq* this, struct spinlock* lock)
         switchuvm(p);
         p->state = RUNNING;
 
-        ticks = sys_uptime();
+        start = sys_uptime();
         swtch(&(c->scheduler), p->context);
-        ticks = sys_uptime() - ticks;
+        end = sys_uptime();
 
         switchkvm();
         c->proc = 0;
 
-        p->mlfq.elapsed += ticks;
-        result = mlfq_update(this, p);
-
-        if (result == MLFQ_KEEP)
+        p->mlfq.elapsed += end - start;
+        if (mlfq_update(this, p) == MLFQ_KEEP)
           --iter;
+
+        if (end > boost) {
+          mlfq_boost(this);
+          boost += this->expire[2];
+        }
       }
 
       if (!found)

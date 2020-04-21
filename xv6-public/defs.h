@@ -195,6 +195,7 @@ void            mlfq_default(struct mlfq*);
 int             mlfq_append(struct mlfq*, struct proc*, int);
 void            mlfq_delete(struct mlfq*, struct proc*);
 int             mlfq_update(struct mlfq*, struct proc*);
+void            mlfq_boost(struct mlfq*);
 void            mlfq_scheduler(struct mlfq*, struct spinlock*) __attribute__((noreturn));
 
 // number of elements in fixed-size array
