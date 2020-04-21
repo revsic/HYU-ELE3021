@@ -16,7 +16,7 @@ main(int argc, char* argv[])
       printf(1, "Child\n");
       yield();
     } else {
-      printf(1, "Parent\n");
+      printf(1, "%d\n", getlev());
       yield();
     }
   }
