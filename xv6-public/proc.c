@@ -546,3 +546,13 @@ procdump(void)
     cprintf("\n");
   }
 }
+
+int
+getlev(void)
+{
+  struct proc* p = myproc();
+  if (p == 0)
+    return -1;
+  
+  return p->mlfq.level;
+}
