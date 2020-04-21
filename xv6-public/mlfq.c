@@ -105,8 +105,6 @@ mlfq_boost(struct mlfq* this)
       *lower = 0;
 
       p = *top;
-      cprintf("boost %d %d -> 0 %d\n", p->mlfq.level, p->mlfq.index, top - this->queue[0]);
-      
       p->mlfq.level = 0;
       p->mlfq.index = top - this->queue[0];
       p->mlfq.elapsed = 0;
