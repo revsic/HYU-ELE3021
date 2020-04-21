@@ -102,3 +102,14 @@ sys_getlev(void)
 {
   return getlev();
 }
+
+int
+sys_set_cpu_share(void)
+{
+  int n;
+  if (argint(0, &n) < 0)
+    return -1;
+
+  set_cpu_share(n);
+  return 0;
+}
