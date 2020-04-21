@@ -8,9 +8,6 @@
 #include "proc.h"
 #include "spinlock.h"
 
-// extern int sys_uptime(void);
-// #define TEST(x) if (!(x)) { cprintf("line %d, %s\n", __LINE__, #x); panic("testerror"); }
-
 struct {
   struct spinlock lock;
   struct proc proc[NPROC];
