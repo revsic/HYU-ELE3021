@@ -553,3 +553,9 @@ getlev(void)
   
   return p->mlfq.level;
 }
+
+void
+set_cpu_share(int percent)
+{
+  
+}
