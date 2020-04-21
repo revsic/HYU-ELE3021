@@ -150,11 +150,9 @@ mlfq_scheduler(struct mlfq* this, struct spinlock* lock)
 
         start = sys_uptime();
         swtch(&(c->scheduler), p->context);
-        end = sys_uptime();
-
         switchkvm();
-        c->proc = 0;
 
+        end = sys_uptime();
         p->mlfq.elapsed += end - start;
         if (mlfq_update(this, p) == MLFQ_KEEP)
           --iter;
@@ -163,12 +161,14 @@ mlfq_scheduler(struct mlfq* this, struct spinlock* lock)
           mlfq_boost(this);
           boost += this->expire[2];
         }
+
+        c->proc = 0;
       }
 
-      if (!found)
-        ++i;
-      else
+      if (found)
         i = 0;
+      else
+        ++i;
     }
     release(lock);
   }
