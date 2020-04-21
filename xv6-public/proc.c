@@ -94,8 +94,6 @@ found:
   p->pid = nextpid++;
 
   mlfq_append(&mlfq, p, 0);
-  cprintf("append %d %d\n", p->mlfq.level, p->mlfq.index);
-
   release(&ptable.lock);
 
   // Allocate kernel stack.
@@ -302,7 +300,6 @@ wait(void)
         p->name[0] = 0;
         p->killed = 0;
         p->state = UNUSED;
-        cprintf("deleted %d %d\n", p->mlfq.level, p->mlfq.index);
         mlfq_delete(&mlfq, p);
         release(&ptable.lock);
         return pid;
@@ -557,5 +554,5 @@ getlev(void)
 void
 set_cpu_share(int percent)
 {
-  
+
 }
