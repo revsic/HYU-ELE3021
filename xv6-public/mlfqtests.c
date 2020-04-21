@@ -30,7 +30,7 @@ main(int argc, char *argv[])
 
     do_yield = atoi(argv[1]);
 
-    int pid = fork();
+    // int pid = fork();
 
     i = 0;
     while (1) {
@@ -45,9 +45,9 @@ main(int argc, char *argv[])
             cnt_level[curr_mlfq_level]++;
 
             if (i > LIFETIME) {
-                printf(1, "MLFQ(%s), %s, lev[0]: %d, lev[1]: %d, lev[2]: %d\n",
+                printf(1, "MLFQ(%s), lev[0]: %d, lev[1]: %d, lev[2]: %d\n",
                         do_yield==0 ? "compute" : "yield",
-                        pid == 0 ? "child" : "parent",
+                        // pid == 0 ? "child" : "parent",
                         cnt_level[0], cnt_level[1], cnt_level[2]);
                 break;
             }
@@ -59,9 +59,9 @@ main(int argc, char *argv[])
         }
     }
 
-    if (pid > 0) {
-        wait();
-    }
+    // if (pid > 0) {
+    //     wait();
+    // }
 
     exit();
 }
