@@ -183,9 +183,9 @@ proc.c의 kill은 myproc을 직접 정리하지 않고 p->killed=1 & p->state=ru
 - [x] mlfq_update to scheduler, wait 
 - [x] expire
 - [ ] do not switch when inefficient rr ticks
-- [ ] boost
+- [x] boost
 - [ ] tick base -> cmostime based
-- [ ] getlev
+- [x] getlev
 
 - [ ] stride scheduling
 - [ ] mixing
