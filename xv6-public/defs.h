@@ -11,6 +11,7 @@ struct stat;
 struct superblock;
 
 struct stride;
+struct mlfqiter;
 struct mlfq;
 
 // bio.c
@@ -196,6 +197,7 @@ void            stride_init(struct stride*, int);
 int             stride_append(struct stride*, struct proc*, int);
 void            stride_delete(struct stride*, struct proc*);
 int             stride_update(struct stride*, struct proc*);
+struct proc*    stride_next(struct stride*);
 
 void            mlfq_init(struct mlfq*, int, int, uint*, uint*);
 void            mlfq_default(struct mlfq*);
@@ -203,6 +205,7 @@ int             mlfq_append(struct mlfq*, struct proc*, int);
 int             mlfq_cpu_share(struct mlfq*, struct proc*, int);
 void            mlfq_delete(struct mlfq*, struct proc*);
 int             mlfq_update(struct mlfq*, struct proc*);
+struct proc*    mlfq_next(struct mlfq*);
 void            mlfq_boost(struct mlfq*);
 void            mlfq_scheduler(struct mlfq*, struct spinlock*) __attribute__((noreturn));
 
