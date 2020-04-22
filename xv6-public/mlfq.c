@@ -261,52 +261,43 @@ mlfq_boost(struct mlfq* this)
 void
 mlfq_scheduler(struct mlfq* this, struct spinlock* lock)
 {
-  int i, found;
+  int i, keep;
   uint start, end, boost;
   struct proc* p;
-  struct proc** iter;
   struct cpu* c = mycpu();
   c->proc = 0;
 
+  keep = MLFQ_NEXT;
   boost = this->expire[2];
   for (;;) {
     sti();
 
     acquire(lock);
-    for (i = 0; i < this->num_queue;) {
-      found = 0;
-      for (iter = this->queue[i]; iter != &this->queue[i][NCPU]; ++iter) {
-        if (*iter == 0 || (*iter)->state != RUNNABLE)
-          continue;
-
-        found = 1;
-        p = *iter;
-
-        c->proc = p;
-        switchuvm(p);
-        p->state = RUNNING;
-
-        start = sys_uptime();
-        swtch(&(c->scheduler), p->context);
-        switchkvm();
-
-        end = sys_uptime();
-        p->mlfq.elapsed += end - start;
-        if (mlfq_update(this, p) == MLFQ_KEEP)
-          --iter;
-
-        if (end > boost) {
-          mlfq_boost(this);
-          boost += this->expire[2];
-        }
-
-        c->proc = 0;
+    for (i = 0; i < NPROC; ++i) {
+      if (keep == MLFQ_NEXT) {
+        p = stride_next(&this->metasched);
+        if (p == (struct proc*)-1)
+          p = mlfq_next(this);
       }
 
-      if (found)
-        i = 0;
-      else
-        ++i;
+      c->proc = p;
+      switchuvm(p);
+      p->state = RUNNING;
+
+      start = sys_uptime();
+      swtch(&(c->scheduler), p->context);
+      switchkvm();
+
+      end = sys_uptime();
+      p->mlfq.elapsed += end - start;
+      keep = mlfq_update(this, p);
+
+      if (end > boost) {
+        mlfq_boost(this);
+        boost += this->expire[2];
+      }
+
+      c->proc = 0;
     }
     release(lock);
   }
