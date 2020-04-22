@@ -17,7 +17,6 @@ struct mlfq {
   int num_queue;
   uint quantum[NMLFQ];
   uint expire[NMLFQ];
-  int nproc;
   struct proc* queue[NMLFQ][NPROC];
   struct stride metasched;
 

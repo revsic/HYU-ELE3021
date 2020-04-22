@@ -103,7 +103,6 @@ mlfq_init(struct mlfq* this, int maxmeta, int num_queue, uint* rr, uint* expire)
   struct proc** iter = &this->queue[0][0];
 
   this->num_queue = num_queue;
-  this->nproc = 0;
   for (i = 0; i < num_queue; ++i) {
     this->quantum[i] = rr[i];
     this->expire[i] = expire[i];
@@ -143,8 +142,6 @@ found:
   p->mlfq.level = level;
   p->mlfq.index = iter - this->queue[level];
   p->mlfq.elapsed = 0;
-
-  this->nproc++;
   return MLFQ_SUCCESS;
 }
 
@@ -165,7 +162,6 @@ mlfq_delete(struct mlfq* this, struct proc* p)
     stride_delete(&this->metasched, p);
   else
     this->queue[p->mlfq.level][p->mlfq.index] = 0;  
-  this->nproc--;
 }
 
 int
