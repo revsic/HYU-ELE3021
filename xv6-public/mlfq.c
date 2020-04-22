@@ -191,25 +191,37 @@ mlfq_update(struct mlfq* this, struct proc* p)
 struct proc*
 mlfq_next(struct mlfq* this)
 {
-  // int i;
-  // struct proc* p;
-  // struct proc** iter;
-  // struct iterstate* state;
+  int i;
+  struct proc** iter;
+  struct iterstate* state = &this->iter;
 
-  // if (this->nproc <= 0)
-  //   return 0;
+  int retry = 0;
+  for (i = 0; i < this->num_queue; ++i) {
+    if (i == state->level && !retry)
+      iter = state->iter;
+    else
+      iter = this->queue[i];
+    
+    for (; iter != this->queue[i] + NPROC; ++iter) {
+      if (*iter == 0 || (*iter)->state != RUNNABLE)
+        continue;
+      
+      state->level = i;
+      state->iter = iter;
+      return *state->iter++;
+    }
 
-  // state = &this->iter;
-  // for (; state->level < this->num_queue; ++state->level) {
-  //   i = state->level;
-  //   for (; state->iter != &this->queue[i][NCPU]; ++state->iter) {
-  //     p = *state->iter;
-  //     if (p == 0 || p->state != RUNNABLE)
-  //       continue;
+    if (i == state->level && !retry) {
+      --i;
+      retry = 1;
+    }
+    else
+      retry = 0;
+  }
 
-  //     return *state->iter++;
-  //   }
-  // }
+  state->level = 0;
+  state->iter = this->queue[0];
+  return 0;
 }
 
 void
