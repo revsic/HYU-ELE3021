@@ -17,14 +17,15 @@ stride_init(struct stride* this, int maxima) {
   this->maxima = maxima;
   this->total = 0;
 
-  for (i = 0; i < NPROC; ++i) {
-    this->pass[i] = 0;
+  this->pass[0] = 0;
+  this->ticket[0] = MAXTICKET;
+  this->queue[0] = (struct proc*)-1;
+
+  for (i = 1; i < NPROC; ++i) {
+    this->pass[i] = -1;
     this->ticket[i] = 0;
     this->queue[i] = 0;
   }
-
-  this->ticket[0] = MAXTICKET - this->maxima;
-  this->queue[0] = (struct proc*)-1;
 }
 
 int
@@ -50,11 +51,12 @@ found:
 
   *iter = p;
   this->total += usage;
+  this->ticket[0] -= usage;
   this->ticket[idx] = usage;
 
   minpass = 0;
   for (pass = this->pass; pass != &this->pass[NPROC]; ++pass) {
-    if (*pass != 0 && *pass > minpass) {
+    if (*pass > minpass) {
       minpass = *pass;
     }
   }
@@ -65,7 +67,14 @@ found:
 
 void
 stride_delete(struct stride* this, struct proc* p) {
-  this->queue[p->mlfq.index] = 0;
+  int idx = p->mlfq.index;
+  int usage = this->ticket[idx];
+  this->total -= usage;
+  this->ticket[0] += usage;
+
+  this->pass[idx] = -1;
+  this->ticket[idx] = 0;
+  this->queue[idx] = 0;
 }
 
 int
@@ -75,6 +84,18 @@ stride_update(struct stride* this, struct proc* p) {
   return MLFQ_NEXT;
 }
 
+struct proc*
+stride_next(struct stride* this) {
+  float* iter;
+  float* minpass = this->pass;
+
+  for (iter = this->pass + 1; iter != &this->pass[NPROC]; ++iter)
+    if (*minpass > *iter)
+      iter = minpass;
+
+  return this->queue[iter - this->pass];
+}
+
 void
 mlfq_init(struct mlfq* this, int maxmeta, int num_queue, uint* rr, uint* expire)
 {
@@ -82,6 +103,7 @@ mlfq_init(struct mlfq* this, int maxmeta, int num_queue, uint* rr, uint* expire)
   struct proc** iter = &this->queue[0][0];
 
   this->num_queue = num_queue;
+  this->nproc = 0;
   for (i = 0; i < num_queue; ++i) {
     this->quantum[i] = rr[i];
     this->expire[i] = expire[i];
@@ -91,6 +113,9 @@ mlfq_init(struct mlfq* this, int maxmeta, int num_queue, uint* rr, uint* expire)
   }
 
   stride_init(&this->metasched, maxmeta);
+
+  this->iter.level = 0;
+  this->iter.iter = this->queue[0];
 }
 
 void
@@ -118,6 +143,8 @@ found:
   p->mlfq.level = level;
   p->mlfq.index = iter - this->queue[level];
   p->mlfq.elapsed = 0;
+
+  this->nproc++;
   return MLFQ_SUCCESS;
 }
 
@@ -138,6 +165,7 @@ mlfq_delete(struct mlfq* this, struct proc* p)
     stride_delete(&this->metasched, p);
   else
     this->queue[p->mlfq.level][p->mlfq.index] = 0;  
+  this->nproc--;
 }
 
 int
@@ -162,6 +190,30 @@ mlfq_update(struct mlfq* this, struct proc* p)
   }
 
   return MLFQ_KEEP;
+}
+
+struct proc*
+mlfq_next(struct mlfq* this)
+{
+  // int i;
+  // struct proc* p;
+  // struct proc** iter;
+  // struct iterstate* state;
+
+  // if (this->nproc <= 0)
+  //   return 0;
+
+  // state = &this->iter;
+  // for (; state->level < this->num_queue; ++state->level) {
+  //   i = state->level;
+  //   for (; state->iter != &this->queue[i][NCPU]; ++state->iter) {
+  //     p = *state->iter;
+  //     if (p == 0 || p->state != RUNNABLE)
+  //       continue;
+
+  //     return *state->iter++;
+  //   }
+  // }
 }
 
 void

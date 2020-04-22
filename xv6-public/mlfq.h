@@ -6,12 +6,25 @@ struct stride {
   struct proc* queue[NPROC];
 };
 
+struct mlfqiter {
+  int num_queue;
+  int* nproc;
+  int level;
+  struct proc** iter;
+};
+
 struct mlfq {
   int num_queue;
   uint quantum[NMLFQ];
   uint expire[NMLFQ];
+  int nproc;
   struct proc* queue[NMLFQ][NPROC];
   struct stride metasched;
+
+  struct iterstate {
+    int level;
+    struct proc** iter;
+  } iter;
 };
 
 enum mlfqstate {
