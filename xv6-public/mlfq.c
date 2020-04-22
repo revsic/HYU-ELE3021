@@ -11,7 +11,72 @@
 extern int sys_uptime(void);
 
 void
-mlfq_init(struct mlfq* this, int num_queue, uint* rr, uint* expire)
+stride_init(struct stride* this, int maxima) {
+  int i;
+
+  this->maxima = maxima;
+  this->total = 0;
+
+  for (i = 0; i < NPROC; ++i) {
+    this->pass[i] = 0;
+    this->ticket[i] = 0;
+    this->queue[i] = 0;
+  }
+
+  this->ticket[0] = MAXTICKET - this->maxima;
+  this->queue[0] = (struct proc*)-1;
+}
+
+int
+stride_append(struct stride* this, struct proc* p, int usage) {
+  int idx;
+  float minpass;
+  float* pass;
+  struct proc** iter;
+
+  if (this->total + usage > this->maxima)
+    return 0;
+
+  for (iter = this->queue; iter != &this->queue[NPROC]; ++iter)
+    if (*iter == 0)
+      goto found;
+
+  return 0;
+
+found:
+  idx = iter - this->queue;
+  p->mlfq.level = -1;
+  p->mlfq.index = idx;
+
+  *iter = p;
+  this->total += usage;
+  this->ticket[idx] = usage;
+
+  minpass = 0;
+  for (pass = this->pass; pass != &this->pass[NPROC]; ++pass) {
+    if (*pass != 0 && *pass > minpass) {
+      minpass = *pass;
+    }
+  }
+
+  this->pass[idx] = minpass;
+  return 1;
+}
+
+void
+stride_delete(struct stride* this, struct proc* p) {
+  this->queue[p->mlfq.index] = 0;
+}
+
+int
+stride_update(struct stride* this, struct proc* p) {
+  int idx = p->mlfq.index;
+  this->pass[idx] += (float)MAXTICKET / this->ticket[idx];
+  return MLFQ_NEXT;
+}
+
+void
+mlfq_init(struct mlfq* this, int maxmeta, int num_queue, uint* rr, uint* expire)
 {
   int i, j;
   struct proc** iter = &this->queue[0][0];
@@ -24,6 +89,8 @@ mlfq_init(struct mlfq* this, int num_queue, uint* rr, uint* expire)
     for (j = 0; j < NPROC; ++j, ++iter)
       *iter = 0;
   }
+
+  stride_init(&this->metasched, maxmeta);
 }
 
 void
@@ -31,7 +98,7 @@ mlfq_default(struct mlfq* this)
 {
   static uint rr[] = { 1, 2, 4 };
   static uint expire[] = { 5, 10, 100 };
-  mlfq_init(this, 3, rr, expire);
+  mlfq_init(this, MAXSTRIDE, 3, rr, expire);
 }
 
 int
@@ -54,16 +121,28 @@ found:
   return MLFQ_SUCCESS;
 }
 
+int
+mlfq_cpu_share(struct mlfq* this, struct proc* p, int usage)
+{
+  if (!stride_append(&this->metasched, p, usage)) {
+    return 0;
+  }
+  mlfq_delete(this, p);
+  return 1;
+}
+
 void
 mlfq_delete(struct mlfq* this, struct proc* p)
 {
-  this->queue[p->mlfq.level][p->mlfq.index] = 0;  
+  if (p->mlfq.level == -1)
+    stride_delete(&this->metasched, p);
+  else
+    this->queue[p->mlfq.level][p->mlfq.index] = 0;  
 }
 
 int
 mlfq_update(struct mlfq* this, struct proc* p)
 {
-  int result;
   int level = p->mlfq.level;
   int index = p->mlfq.index;
 
@@ -71,14 +150,15 @@ mlfq_update(struct mlfq* this, struct proc* p)
     // queue is cleared in function wait.
     return MLFQ_NEXT;
 
-  if (level + 1 < this->num_queue && p->mlfq.elapsed >= this->expire[level]) {
-    result = mlfq_append(this, p, level + 1);
-    if (result == MLFQ_SUCCESS) {
-      this->queue[level][index] = 0;
-      return MLFQ_NEXT;
-    }
+  if (level == -1)
+    return stride_update(&this->metasched, p);
 
-    return result;
+  if (level + 1 < this->num_queue && p->mlfq.elapsed >= this->expire[level]) {
+    if (mlfq_append(this, p, level + 1) != MLFQ_SUCCESS)
+      panic("mlfq: level elevation failed");
+
+    this->queue[level][index] = 0;
+    return MLFQ_NEXT;
   }
 
   return MLFQ_KEEP;
