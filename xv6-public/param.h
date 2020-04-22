@@ -13,4 +13,5 @@
 #define FSSIZE       1000  // size of file system in blocks
 
 #define NMLFQ         3  // number of multi-level feedback queue.
- 
+#define MAXTICKET   100  // maximum number of ticket.
+#define MAXSTRIDE    80  // maximum number of stride tickets.
