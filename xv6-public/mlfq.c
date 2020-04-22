@@ -54,9 +54,9 @@ found:
   this->ticket[0] -= usage;
   this->ticket[idx] = usage;
 
-  minpass = 0;
-  for (pass = this->pass; pass != &this->pass[NPROC]; ++pass) {
-    if (*pass > minpass) {
+  minpass = this->pass[0];
+  for (pass = this->pass + 1; pass != &this->pass[NPROC]; ++pass) {
+    if (*pass != -1 && minpass > *pass) {
       minpass = *pass;
     }
   }
@@ -90,10 +90,10 @@ stride_next(struct stride* this) {
   float* minpass = this->pass;
 
   for (iter = this->pass + 1; iter != &this->pass[NPROC]; ++iter)
-    if (*minpass > *iter)
-      iter = minpass;
+    if (*iter != -1 && *minpass > *iter)
+      minpass = iter;
 
-  return this->queue[iter - this->pass];
+  return this->queue[minpass - this->pass];
 }
 
 void
@@ -201,7 +201,7 @@ mlfq_next(struct mlfq* this)
       iter = state->iter;
     else
       iter = this->queue[i];
-    
+
     for (; iter != this->queue[i] + NPROC; ++iter) {
       if (*iter == 0 || (*iter)->state != RUNNABLE)
         continue;
@@ -263,7 +263,7 @@ mlfq_scheduler(struct mlfq* this, struct spinlock* lock)
 {
   int i, keep;
   uint start, end, boost;
-  struct proc* p;
+  struct proc* p = 0;
   struct cpu* c = mycpu();
   c->proc = 0;
 
@@ -274,10 +274,13 @@ mlfq_scheduler(struct mlfq* this, struct spinlock* lock)
 
     acquire(lock);
     for (i = 0; i < NPROC; ++i) {
-      if (keep == MLFQ_NEXT) {
+      if (keep == MLFQ_NEXT || p == 0 || p->state != RUNNABLE) {
         p = stride_next(&this->metasched);
         if (p == (struct proc*)-1)
           p = mlfq_next(this);
+        
+        if (p == 0)
+          continue;
       }
 
       c->proc = p;
