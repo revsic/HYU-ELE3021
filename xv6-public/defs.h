@@ -11,7 +11,6 @@ struct stat;
 struct superblock;
 
 struct stride;
-struct mlfqiter;
 struct mlfq;
 
 // bio.c
