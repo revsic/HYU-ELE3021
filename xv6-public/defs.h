@@ -10,6 +10,7 @@ struct sleeplock;
 struct stat;
 struct superblock;
 
+struct stride;
 struct mlfq;
 
 // bio.c
@@ -191,9 +192,15 @@ int             copyout(pde_t*, uint, void*, uint);
 void            clearpteu(pde_t *pgdir, char *uva);
 
 // mlfq.c
-void            mlfq_init(struct mlfq*, int, uint*, uint*);
+void            stride_init(struct stride*, int);
+int             stride_append(struct stride*, struct proc*, int);
+void            stride_delete(struct stride*, struct proc*);
+int             stride_update(struct stride*, struct proc*);
+
+void            mlfq_init(struct mlfq*, int, int, uint*, uint*);
 void            mlfq_default(struct mlfq*);
 int             mlfq_append(struct mlfq*, struct proc*, int);
+int             mlfq_cpu_share(struct mlfq*, struct proc*, int);
 void            mlfq_delete(struct mlfq*, struct proc*);
 int             mlfq_update(struct mlfq*, struct proc*);
 void            mlfq_boost(struct mlfq*);
