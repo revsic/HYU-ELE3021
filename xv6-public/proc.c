@@ -522,6 +522,5 @@ getlev(void)
 int
 set_cpu_share(int percent)
 {
-  // return mlfq_cpu_share(&mlfq, myproc(), percent);
-  return 1;
+  return mlfq_cpu_share(&mlfq, myproc(), percent);
 }
