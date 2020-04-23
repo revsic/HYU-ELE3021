@@ -97,12 +97,15 @@ sys_yield(void)
   return 0;
 }
 
+// return MLFQ level of process.
 int
 sys_getlev(void)
 {
   return getlev();
 }
 
+// move process form MLFQ scheduler to stride scheduler
+// with given cpu usage.
 int
 sys_set_cpu_share(void)
 {
