@@ -148,10 +148,12 @@ found:
 int
 mlfq_cpu_share(struct mlfq* this, struct proc* p, int usage)
 {
+  int level = p->mlfq.level;
+  int index = p->mlfq.index;
   if (!stride_append(&this->metasched, p, usage)) {
     return 0;
   }
-  mlfq_delete(this, p);
+  this->queue[level][index] = 0;
   return 1;
 }
 
