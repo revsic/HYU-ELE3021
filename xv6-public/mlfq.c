@@ -270,8 +270,9 @@ mlfq_scheduler(struct mlfq* this, struct spinlock* lock)
   uint start, end, boost, boostunit;
   struct proc* p = 0;
   struct cpu* c = mycpu();
-  c->proc = 0;
+  struct stride* state = &this->metasched;
 
+  c->proc = 0;
   boostunit = this->expire[this->num_queue - 1];
 
   keep = MLFQ_NEXT;
@@ -281,13 +282,13 @@ mlfq_scheduler(struct mlfq* this, struct spinlock* lock)
 
     acquire(lock);
     if (keep == MLFQ_NEXT || p->state != RUNNABLE) {
-      p = stride_next(&this->metasched);
+      p = stride_next(state);
       if (p == (struct proc*)-1)
         p = mlfq_next(this);
 
       if (p == 0) {
         keep = MLFQ_NEXT;
-        this->metasched.pass[0] += (float)MAXTICKET / this->metasched.ticket[0];
+        state->pass[0] += (float)MAXTICKET / state->ticket[0];
         goto skip;
       }
     }
