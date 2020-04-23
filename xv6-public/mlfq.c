@@ -124,7 +124,7 @@ mlfq_default(struct mlfq* this)
 {
   static uint rr[] = { 1, 2, 4 };
   static uint expire[] = { 5, 10, 100 };
-  mlfq_init(this, MAXSTRIDE, 3, rr, expire);
+  mlfq_init(this, MAXSTRIDE, NMLFQ, rr, expire);
 }
 
 int
@@ -267,13 +267,15 @@ void
 mlfq_scheduler(struct mlfq* this, struct spinlock* lock)
 {
   int keep;
-  uint start, end, boost;
+  uint start, end, boost, boostunit;
   struct proc* p = 0;
   struct cpu* c = mycpu();
   c->proc = 0;
 
+  boostunit = this->expire[this->num_queue - 1];
+
   keep = MLFQ_NEXT;
-  boost = this->expire[2];
+  boost = boostunit;
   for (;;) {
     sti();
 
@@ -303,7 +305,7 @@ mlfq_scheduler(struct mlfq* this, struct spinlock* lock)
 
     if (end > boost) {
       mlfq_boost(this);
-      boost += this->expire[2];
+      boost += boostunit;
     }
 
     c->proc = 0;
