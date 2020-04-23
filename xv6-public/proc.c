@@ -93,6 +93,7 @@ found:
   p->state = EMBRYO;
   p->pid = nextpid++;
 
+  // Add process to MLFQ scheulder.
   mlfq_append(&mlfq, p, 0);
   release(&ptable.lock);
 
@@ -300,6 +301,7 @@ wait(void)
         p->name[0] = 0;
         p->killed = 0;
         p->state = UNUSED;
+        // Delete process from MLFQ.
         mlfq_delete(&mlfq, p);
         release(&ptable.lock);
         return pid;
@@ -509,6 +511,7 @@ procdump(void)
   }
 }
 
+// Return scheduler level of process.
 int
 getlev(void)
 {
@@ -519,6 +522,8 @@ getlev(void)
   return p->mlfq.level;
 }
 
+// Move process from MLFQ scheulder to stride scheduler
+// with given proportion of CPU usage.
 int
 set_cpu_share(int percent)
 {
