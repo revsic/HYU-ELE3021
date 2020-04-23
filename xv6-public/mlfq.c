@@ -11,12 +11,10 @@
 extern int sys_uptime(void);
 
 void
-stride_init(struct stride* this, int maxima) {
+stride_init(struct stride* this) {
   int i;
 
-  this->maxima = maxima;
   this->total = 0;
-
   this->pass[0] = 0;
   this->ticket[0] = MAXTICKET;
   this->queue[0] = (struct proc*)-1;
@@ -35,7 +33,7 @@ stride_append(struct stride* this, struct proc* p, int usage) {
   float* pass;
   struct proc** iter;
 
-  if (this->total + usage > this->maxima)
+  if (this->total + usage > MAXSTRIDE)
     return 0;
 
   for (iter = this->queue; iter != &this->queue[NPROC]; ++iter)
@@ -114,7 +112,7 @@ stride_next(struct stride* this) {
 }
 
 void
-mlfq_init(struct mlfq* this, int maxmeta, int num_queue, uint* rr, uint* expire)
+mlfq_init(struct mlfq* this, int num_queue, uint* rr, uint* expire)
 {
   int i, j;
   struct proc** iter = &this->queue[0][0];
@@ -128,7 +126,7 @@ mlfq_init(struct mlfq* this, int maxmeta, int num_queue, uint* rr, uint* expire)
       *iter = 0;
   }
 
-  stride_init(&this->metasched, maxmeta);
+  stride_init(&this->metasched);
 
   this->iter.level = 0;
   this->iter.iter = this->queue[0];
@@ -139,7 +137,7 @@ mlfq_default(struct mlfq* this)
 {
   static uint rr[] = { 1, 2, 4 };
   static uint expire[] = { 5, 10, 100 };
-  mlfq_init(this, MAXSTRIDE, NMLFQ, rr, expire);
+  mlfq_init(this, NMLFQ, rr, expire);
 }
 
 int

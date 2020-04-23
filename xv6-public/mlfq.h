@@ -1,5 +1,4 @@
 struct stride {
-  uint maxima;
   uint total;
   float pass[NPROC];
   uint ticket[NPROC];
