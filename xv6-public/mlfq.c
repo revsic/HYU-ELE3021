@@ -278,13 +278,15 @@ mlfq_scheduler(struct mlfq* this, struct spinlock* lock)
 
     acquire(lock);
     for (i = 0; i < NPROC; ++i) {
-      if (keep == MLFQ_NEXT || p == 0 || p->state != RUNNABLE) {
+      if (keep == MLFQ_NEXT || p->state != RUNNABLE) {
         p = stride_next(&this->metasched);
         if (p == (struct proc*)-1)
           p = mlfq_next(this);
-        
-        if (p == 0)
+
+        if (p == 0) {
+          keep = MLFQ_NEXT;
           continue;
+        }
       }
 
       c->proc = p;
