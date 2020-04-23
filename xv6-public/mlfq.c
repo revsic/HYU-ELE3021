@@ -287,37 +287,37 @@ mlfq_scheduler(struct mlfq* this, struct spinlock* lock)
     sti();
 
     acquire(lock);
-    if (keep == MLFQ_NEXT || p->state != RUNNABLE) {
-      p = stride_next(state);
-      if (p == (struct proc*)-1)
-        p = mlfq_next(this);
+    do {
+      if (keep == MLFQ_NEXT || p->state != RUNNABLE) {
+        p = stride_next(state);
+        if (p == (struct proc*)-1)
+          p = mlfq_next(this);
 
-      if (p == 0) {
-        keep = stride_update_mlfq(state);
-        goto skip;
+        if (p == 0) {
+          keep = stride_update_mlfq(state);
+          break;
+        }
       }
-    }
 
-    c->proc = p;
-    switchuvm(p);
-    p->state = RUNNING;
+      c->proc = p;
+      switchuvm(p);
+      p->state = RUNNING;
 
-    start = sys_uptime();
-    swtch(&(c->scheduler), p->context);
-    switchkvm();
+      start = sys_uptime();
+      swtch(&(c->scheduler), p->context);
+      switchkvm();
 
-    end = sys_uptime();
-    p->mlfq.elapsed += end - start;
-    keep = mlfq_update(this, p);
+      end = sys_uptime();
+      p->mlfq.elapsed += end - start;
+      keep = mlfq_update(this, p);
 
-    if (end > boost) {
-      mlfq_boost(this);
-      boost += boostunit;
-    }
+      if (end > boost) {
+        mlfq_boost(this);
+        boost += boostunit;
+      }
 
-    c->proc = 0;
-
-skip:
+      c->proc = 0;
+    } while (0);
     release(lock);
   }
 }
