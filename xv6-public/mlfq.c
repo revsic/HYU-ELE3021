@@ -87,14 +87,15 @@ stride_update(struct stride* this, struct proc* p) {
 struct proc*
 stride_next(struct stride* this) {
   float* iter;
+  float* pass = this->pass;
   float* minpass = this->pass;
+  struct proc** queue = this->queue;
 
-  for (iter = this->pass + 1; iter != &this->pass[NPROC]; ++iter)
-    if (*iter != -1 && *minpass > *iter
-        && this->queue[iter - this->pass]->state == RUNNABLE)
+  for (iter = pass + 1; iter != &pass[NPROC]; ++iter)
+    if (*iter != -1 && *minpass > *iter && queue[iter - pass]->state == RUNNABLE)
       minpass = iter;
 
-  return this->queue[minpass - this->pass];
+  return queue[minpass - pass];
 }
 
 void
@@ -265,7 +266,7 @@ mlfq_boost(struct mlfq* this)
 void
 mlfq_scheduler(struct mlfq* this, struct spinlock* lock)
 {
-  int i, keep;
+  int keep;
   uint start, end, boost;
   struct proc* p = 0;
   struct cpu* c = mycpu();
@@ -277,37 +278,37 @@ mlfq_scheduler(struct mlfq* this, struct spinlock* lock)
     sti();
 
     acquire(lock);
-    for (i = 0; i < NPROC; ++i) {
-      if (keep == MLFQ_NEXT || p->state != RUNNABLE) {
-        p = stride_next(&this->metasched);
-        if (p == (struct proc*)-1)
-          p = mlfq_next(this);
+    if (keep == MLFQ_NEXT || p->state != RUNNABLE) {
+      p = stride_next(&this->metasched);
+      if (p == (struct proc*)-1)
+        p = mlfq_next(this);
 
-        if (p == 0) {
-          keep = MLFQ_NEXT;
-          continue;
-        }
+      if (p == 0) {
+        keep = MLFQ_NEXT;
+        goto skip;
       }
-
-      c->proc = p;
-      switchuvm(p);
-      p->state = RUNNING;
-
-      start = sys_uptime();
-      swtch(&(c->scheduler), p->context);
-      switchkvm();
-
-      end = sys_uptime();
-      p->mlfq.elapsed += end - start;
-      keep = mlfq_update(this, p);
-
-      if (end > boost) {
-        mlfq_boost(this);
-        boost += this->expire[2];
-      }
-
-      c->proc = 0;
     }
+
+    c->proc = p;
+    switchuvm(p);
+    p->state = RUNNING;
+
+    start = sys_uptime();
+    swtch(&(c->scheduler), p->context);
+    switchkvm();
+
+    end = sys_uptime();
+    p->mlfq.elapsed += end - start;
+    keep = mlfq_update(this, p);
+
+    if (end > boost) {
+      mlfq_boost(this);
+      boost += this->expire[2];
+    }
+
+    c->proc = 0;
+
+skip:
     release(lock);
   }
 }
