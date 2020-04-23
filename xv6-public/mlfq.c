@@ -112,13 +112,12 @@ stride_next(struct stride* this) {
 }
 
 void
-mlfq_init(struct mlfq* this, int num_queue, uint* rr, uint* expire)
+mlfq_init(struct mlfq* this, uint* rr, uint* expire)
 {
   int i, j;
   struct proc** iter = &this->queue[0][0];
 
-  this->num_queue = num_queue;
-  for (i = 0; i < num_queue; ++i) {
+  for (i = 0; i < NMLFQ; ++i) {
     this->quantum[i] = rr[i];
     this->expire[i] = expire[i];
 
@@ -137,7 +136,7 @@ mlfq_default(struct mlfq* this)
 {
   static uint rr[] = { 1, 2, 4 };
   static uint expire[] = { 5, 10, 100 };
-  mlfq_init(this, NMLFQ, rr, expire);
+  mlfq_init(this, rr, expire);
 }
 
 int
@@ -195,7 +194,7 @@ mlfq_update(struct mlfq* this, struct proc* p)
     return stride_update(&this->metasched, p);
 
   stride_update_mlfq(&this->metasched);
-  if (level + 1 < this->num_queue && p->mlfq.elapsed >= this->expire[level]) {
+  if (level + 1 < NMLFQ && p->mlfq.elapsed >= this->expire[level]) {
     if (mlfq_append(this, p, level + 1) != MLFQ_SUCCESS)
       panic("mlfq: level elevation failed");
 
@@ -214,7 +213,7 @@ mlfq_next(struct mlfq* this)
   struct iterstate* state = &this->iter;
 
   int retry = 0;
-  for (i = 0; i < this->num_queue; ++i) {
+  for (i = 0; i < NMLFQ; ++i) {
     if (i == state->level && !retry)
       iter = state->iter;
     else
@@ -250,7 +249,7 @@ mlfq_boost(struct mlfq* this)
   struct proc** top = this->queue[0];
   struct proc** lower = this->queue[1];
 
-  for (; lower != &this->queue[this->num_queue - 1][NPROC]; ++lower) {
+  for (; lower != &this->queue[NMLFQ - 1][NPROC]; ++lower) {
     if (*lower == 0)
       continue;
 
@@ -286,7 +285,7 @@ mlfq_scheduler(struct mlfq* this, struct spinlock* lock)
   struct stride* state = &this->metasched;
 
   c->proc = 0;
-  boostunit = this->expire[this->num_queue - 1];
+  boostunit = this->expire[NMLFQ - 1];
 
   keep = MLFQ_NEXT;
   boost = boostunit;
