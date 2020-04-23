@@ -15,3 +15,4 @@
 #define NMLFQ         3  // number of multi-level feedback queue.
 #define MAXTICKET   100  // maximum number of ticket.
 #define MAXSTRIDE    80  // maximum number of stride tickets.
+#define MAXPASS 1000000  // maximum number of pass.
