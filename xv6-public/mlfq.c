@@ -153,10 +153,10 @@ mlfq_cpu_share(struct mlfq* this, struct proc* p, int usage)
   int level = p->mlfq.level;
   int index = p->mlfq.index;
   if (!stride_append(&this->metasched, p, usage)) {
-    return 0;
+    return -1;
   }
   this->queue[level][index] = 0;
-  return 1;
+  return 0;
 }
 
 void
@@ -287,6 +287,7 @@ mlfq_scheduler(struct mlfq* this, struct spinlock* lock)
 
       if (p == 0) {
         keep = MLFQ_NEXT;
+        this->metasched.pass[0] += (float)MAXTICKET / this->metasched.ticket[0];
         goto skip;
       }
     }
