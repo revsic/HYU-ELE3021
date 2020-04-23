@@ -117,15 +117,15 @@ mlfq_init(struct mlfq* this)
   int i, j;
   struct proc** iter = &this->queue[0][0];
 
-  static const uint rr[] = { 1, 2, 4 };
+  static const uint quantum[] = { 1, 2, 4 };
   static const uint expire[] = { 5, 10, 100 };
 
-  this->quantum = rr;
-  this->expire = expire;
-
-  for (i = 0; i < NMLFQ; ++i)
+  for (i = 0; i < NMLFQ; ++i) {
+    this->quantum[i] = quantum[i];
+    this->expire[i] = expire[i];
     for (j = 0; j < NPROC; ++j, ++iter)
       *iter = 0;
+  }
 
   stride_init(&this->metasched);
 
