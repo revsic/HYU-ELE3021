@@ -185,7 +185,7 @@ proc.c의 kill은 myproc을 직접 정리하지 않고 p->killed=1 & p->state=ru
 - [x] boost
 - [x] getlev
 - [ ] do not switch when inefficient rr ticks
-- [ ] tick base -> cmostime based
+- [ ] ~~tick base -> cmostime based~~
 
 - [x] stride scheduling
 - [x] mixing
