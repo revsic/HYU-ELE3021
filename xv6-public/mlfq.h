@@ -1,20 +1,22 @@
+// Stride scheduler context
 struct stride {
-  uint total;
-  float pass[NPROC];
-  uint ticket[NPROC];
-  struct proc* queue[NPROC];
+  uint total;                 // total proportion of stride scheduling process
+  float pass[NPROC];          // pass values, sum of inverse ticket
+  uint ticket[NPROC];         // proportion of stride scheduling process
+  struct proc* queue[NPROC];  // process queue
 };
 
+// MLFQ scheduler context
 struct mlfq {
-  uint quantum[NPROC];
-  uint expire[NPROC];
-  struct proc* queue[NMLFQ][NPROC];
-  struct stride metasched;
+  uint quantum[NPROC];                // round robin time quantum
+  uint expire[NPROC];                 // time to downgrade level
+  struct proc* queue[NMLFQ][NPROC];   // process queue
+  struct stride metasched;            // meta-scheduler for controlling proportion
 
   struct iterstate {
-    int level;
-    struct proc** iter;
-  } iter;
+    int level;                        // current scheduler level of iteration
+    struct proc** iter;               // current process on an iteration
+  } iter;                             // iterator state
 };
 
 enum mlfqstate {
