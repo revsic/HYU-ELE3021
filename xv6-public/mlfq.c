@@ -90,7 +90,8 @@ stride_next(struct stride* this) {
   float* minpass = this->pass;
 
   for (iter = this->pass + 1; iter != &this->pass[NPROC]; ++iter)
-    if (*iter != -1 && *minpass > *iter)
+    if (*iter != -1 && *minpass > *iter
+        && this->queue[iter - this->pass]->state == RUNNABLE)
       minpass = iter;
 
   return this->queue[minpass - this->pass];
@@ -179,6 +180,7 @@ mlfq_update(struct mlfq* this, struct proc* p)
   if (level == -1)
     return stride_update(&this->metasched, p);
 
+  this->metasched.pass[0] += (float)MAXTICKET / this->metasched.ticket[0];
   if (level + 1 < this->num_queue && p->mlfq.elapsed >= this->expire[level]) {
     if (mlfq_append(this, p, level + 1) != MLFQ_SUCCESS)
       panic("mlfq: level elevation failed");
