@@ -77,11 +77,20 @@ stride_delete(struct stride* this, struct proc* p) {
   this->queue[idx] = 0;
 }
 
-int
-stride_update(struct stride* this, struct proc* p) {
-  int idx = p->mlfq.index;
+inline int
+stride_update_internal(struct stride* this, int idx) {
   this->pass[idx] += (float)MAXTICKET / this->ticket[idx];
   return MLFQ_NEXT;
+}
+
+int
+stride_update(struct stride* this, struct proc* p) {
+  return stride_update_internal(this, p->mlfq.index);
+}
+
+int
+stride_update_mlfq(struct stride* this) {
+  return stride_update_internal(this, 0);
 }
 
 struct proc*
@@ -181,7 +190,7 @@ mlfq_update(struct mlfq* this, struct proc* p)
   if (level == -1)
     return stride_update(&this->metasched, p);
 
-  this->metasched.pass[0] += (float)MAXTICKET / this->metasched.ticket[0];
+  stride_update_mlfq(&this->metasched);
   if (level + 1 < this->num_queue && p->mlfq.elapsed >= this->expire[level]) {
     if (mlfq_append(this, p, level + 1) != MLFQ_SUCCESS)
       panic("mlfq: level elevation failed");
@@ -287,8 +296,7 @@ mlfq_scheduler(struct mlfq* this, struct spinlock* lock)
         p = mlfq_next(this);
 
       if (p == 0) {
-        keep = MLFQ_NEXT;
-        state->pass[0] += (float)MAXTICKET / state->ticket[0];
+        keep = stride_update_mlfq(state);
         goto skip;
       }
     }
