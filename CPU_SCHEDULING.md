@@ -192,6 +192,7 @@ proc.c의 kill은 myproc을 직접 정리하지 않고 p->killed=1 & p->state=ru
 - [x] set cpu share
 - [ ] find reason why mlfq runtime on level0 and 1 is similar
 - [x] scaling pass
+- [x] use constant
 
 **appendix**
 
