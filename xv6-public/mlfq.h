@@ -6,8 +6,8 @@ struct stride {
 };
 
 struct mlfq {
-  uint quantum[NMLFQ];
-  uint expire[NMLFQ];
+  const uint* quantum;
+  const uint* expire;
   struct proc* queue[NMLFQ][NPROC];
   struct stride metasched;
 

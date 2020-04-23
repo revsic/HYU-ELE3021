@@ -27,7 +27,7 @@ void
 pinit(void)
 {
   initlock(&ptable.lock, "ptable");
-  mlfq_default(&mlfq);
+  mlfq_init(&mlfq);
 }
 
 // Must be called with interrupts disabled

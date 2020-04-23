@@ -198,8 +198,7 @@ void            stride_delete(struct stride*, struct proc*);
 int             stride_update(struct stride*, struct proc*);
 struct proc*    stride_next(struct stride*);
 
-void            mlfq_init(struct mlfq*, uint*, uint*);
-void            mlfq_default(struct mlfq*);
+void            mlfq_init(struct mlfq*);
 int             mlfq_append(struct mlfq*, struct proc*, int);
 int             mlfq_cpu_share(struct mlfq*, struct proc*, int);
 void            mlfq_delete(struct mlfq*, struct proc*);
