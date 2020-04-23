@@ -79,7 +79,13 @@ stride_delete(struct stride* this, struct proc* p) {
 
 inline int
 stride_update_internal(struct stride* this, int idx) {
+  float* pass;
   this->pass[idx] += (float)MAXTICKET / this->ticket[idx];
+  if (this->pass[idx] > MAXPASS)
+    for (pass = this->pass; pass != this->pass + NPROC; ++pass)
+      if (*pass > 0)
+        *pass -= MAXPASS - MAXTICKET * 10;
+
   return MLFQ_NEXT;
 }
 
