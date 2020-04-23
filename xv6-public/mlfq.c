@@ -84,7 +84,7 @@ stride_update_internal(struct stride* this, int idx) {
   if (this->pass[idx] > MAXPASS)
     for (pass = this->pass; pass != this->pass + NPROC; ++pass)
       if (*pass > 0)
-        *pass -= MAXPASS - MAXTICKET * 10;
+        *pass -= MAXPASS - SCALEPASS;
 
   return MLFQ_NEXT;
 }
