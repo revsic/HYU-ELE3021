@@ -51,10 +51,10 @@ struct proc {
   char name[16];               // Process name (debugging)
 
   struct {
-    int level;
-    int index;
-    uint elapsed;
-  } mlfq;
+    int level;                // scheduler level, -1 for stride, 0 ~ 3 for MLFQ
+    int index;                // index of process table in scheduler
+    uint elapsed;             // cpu time spent by process
+  } mlfq;                     // member for MLFQ scheduler
 };
 
 // Process memory is laid out contiguously, low addresses first:
