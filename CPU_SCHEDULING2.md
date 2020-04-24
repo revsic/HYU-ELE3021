@@ -174,3 +174,19 @@ STRIDE(10%), cnt: 92
 실제로 92:373으로 대략 1:4 정도의 tick 차이를 보였다.
 
 ### Master Analysis
+
+- source: [mastertests.c](xv6-public/mastertests.c)
+
+이를 통합하면 mlfq와 stride가 동시에 돌아갈 때 stride scheduling process 사이에는 cpu share만큼의 tick 차이가 있을 것이고, mlfq 에서는 레벨별로 사전에 정의된 비에 따라 tick 차이를 가질 것이다.
+
+```
+$ mastertests
+STRIDE(40%), cnt: 459
+STRIDE(10%), cnt: 113
+MLFQ(compute), lev[0]: 2410, lev[1]: 2695, lev[2]: 14896
+MLFQ(yield), lev[0]: 2787, lev[1]: 4124, lev[2]: 13090
+```
+
+실제로 stride 사이에는 1:4의 비율 차가 드러났지만, mlfq level 사이에는 실제로 1:2 만큼의 차이는 보이지 않았다. 이 현상은 추가 실험을 통해 원인을 밝혀내고, 필요하다면 수정해야 할 부분으로 보인다.
+
+mlfqtests와 stridetests가 서로 tick을 측정하는 방식이 다르다는 점도 감안하여 추후 실험에는 mlfq와 stride 사이의 tick 차이도 확인해볼 예정이다.
