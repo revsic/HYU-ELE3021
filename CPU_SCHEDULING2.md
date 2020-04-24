@@ -103,7 +103,7 @@ cmostime의 경우에는 최소 시간 단위가 초(sec)이기 때문에 더 �
 
 ## Tick checking after context switch
 
-현재는 process가 context switching을 한 후에 scheduler 단게에서 tick 수를 세어 queue의 이동을 결정한다. 이 경우 동일한 프로세스가 다시 올라가더라도 switching overhead를 그대로 들고 가기 때문에 MLFQ의 policy에 따른 benefit을 얻을 수는 있지만 optimal한 솔루션은 아니다. 이후에 trap.c 에서 yield를 하기 전에 tick을 검사하는 방식을 도입할 예정이다.
+현재는 process가 context switching을 한 후에 scheduler 단계에서 tick 수를 세어 queue의 이동을 결정한다. 이 경우 동일한 프로세스가 다시 올라가더라도 switching overhead를 그대로 들고 가기 때문에 MLFQ의 policy에 따른 benefit을 얻을 수는 있지만 optimal한 솔루션은 아니다. 이후에 trap.c 에서 yield를 하기 전에 tick을 검사하는 방식을 도입할 예정이다.
 
 ## Analysis
 
