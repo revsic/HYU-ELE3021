@@ -10,6 +10,8 @@
 
 extern int sys_uptime(void);
 
+static struct proc* MLFQ_PROC = (struct proc*)-1;
+
 // Initialize stride scheduler.
 // First process is MLFQ scheduler.
 // Function mlfq_cpu_share moves a process to the stride scheduler,
@@ -23,7 +25,7 @@ stride_init(struct stride* this) {
   this->total = 0;
   this->pass[0] = 0;
   this->ticket[0] = MAXTICKET;
-  this->queue[0] = (struct proc*)-1;
+  this->queue[0] = MLFQ_PROC;
 
   // Make queue empty except MLFQ scheduler.
   for (i = 1; i < NPROC; ++i) {
@@ -348,8 +350,8 @@ mlfq_scheduler(struct mlfq* this, struct spinlock* lock)
         // Get next process from method to run.
         p = stride_next(state);
         // If given process is MLFQ scheduler,
-        // request a process to it.
-        if (p == (struct proc*)-1)
+        // request a new process.
+        if (p == MLFQ_PROC)
           p = mlfq_next(this);
 
         // If there is nothing runnable.
