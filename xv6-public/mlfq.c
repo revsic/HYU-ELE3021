@@ -43,7 +43,7 @@ stride_append(struct stride* this, struct proc* p, int usage) {
   float* pass;
   struct proc** iter;
   // If total proprotion exceeds maximum stride scheduling.
-  if (this->total + usage > MAXSTRIDE)
+  if (this->total + usage > MAXSTRIDE || usage <= 0)
     return 0;
 
   // Find empty space.
