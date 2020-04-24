@@ -111,6 +111,38 @@ cmostime의 경우에는 최소 시간 단위가 초(sec)이기 때문에 더 �
 
 ### MLFQ Analysis
 
+프로세스가 고정된 CPU 할당량을 받지 않은 경우에는 MLFQ 방식으로만 작동한다. 이 경우 loop를 돌면서 각 레벨에 있던 시간을 측정하면 expire time의 비율과 유사한 tick 수를 얻어야 한다.
+
+|      | highest | middle | lowest | 
+| ---- | ------- | ------ | ------ |
+|  RR  | 1 tick  | 2 tick | 4 tick |
+| Expire | 5 tick | 10 tick |
+
+현재 설정에서는 1:2 정도를 얻어야 하는 것이다.
+
+```
+$ mlfqtests 0
+MLFQ(compute), lev[0]: 1186, lev[1]: 2495, lev[2]: 16320
+$ mlfqtests 1
+MLFQ(yield), lev[0]: 1007, lev[1]: 2401, lev[2]: 16593
+```
+
+실제로 1186:2495, 1007:2401로 대략 1:2 정도의 실험 결과를 확인하였다.
+
+|      | highest | middle | lowest | 
+| ---- | ------- | ------ | ------ |
+|  RR  | 1 tick  | 2 tick | 4 tick |
+| Expire | 5 tick | 20 tick |
+
+설정을 바꿔 1:4가 나오는 것도 확인하였다.
+
+```
+init: starting sh
+$ mlfqtests 0
+MLFQ(compute), lev[0]: 1259, lev[1]: 5019, lev[2]: 13723
+$ mlfqtests 1
+MLFQ(yield), lev[0]: 1064, lev[1]: 4380, lev[2]: 14557
+```
 
 ### Stride Analysis
 
