@@ -111,6 +111,8 @@ cmostime의 경우에는 최소 시간 단위가 초(sec)이기 때문에 더 �
 
 ### MLFQ Analysis
 
+-  source: [mlfqtests.c](xv6-public/mlfqtests.c)
+
 프로세스가 고정된 CPU 할당량을 받지 않은 경우에는 MLFQ 방식으로만 작동한다. 이 경우 loop를 돌면서 각 레벨에 있던 시간을 측정하면 expire time의 비율과 유사한 tick 수를 얻어야 한다.
 
 |      | highest | middle | lowest | 
@@ -146,5 +148,29 @@ MLFQ(yield), lev[0]: 1064, lev[1]: 4380, lev[2]: 14557
 
 ### Stride Analysis
 
+- source: [stridetests.c](xv6-public/stridetests.c)
+- source: [mastertests.c](xv6-public/mastertests.c)
+
+현재 커널은 다른 서비스를 실행하지 않기 때문에 init과 shell만이 ptable에 등록된 상태이다. 여기서 실행파일을 실행하면 shell은 exec로 인해 주어진 실행파일로 교체되며 ptable에는 init과 실행파일 두 개만 존재한다. 이때 init은 wait에 의한 sleeping 상태이기 때문에 CPU는 온전히 주어진 실행파일만을 위해 존재한다.
+
+여기서 실행파일이 single process 상태에서 cpu share을 요청하더라도 이미 본인만이 CPU를 요청하고 있기 때문에 비율이 달라지더라도 tick의 수가 같아야 한다.
+
+```
+init: starting sh
+$ stridetests 10
+STRIDE(10%), cnt: 635
+$ stridetests 80
+STRIDE(80%), cnt: 624
+```
+
+반면 실행파일에서 fork를 통해 프로세스를 복제하고, 서로 다른 cpu share를 요청했다면 scheduler는 프로세스 두 개를 해당 비율에 맞게 scheduling 할 것이고, 해당 비율만큼의 tick 차이가 결과로 보일 것이다.
+
+```
+$ mastertests
+STRIDE(40%), cnt: 373
+STRIDE(10%), cnt: 92
+```
+
+실제로 92:373으로 대략 1:4 정도의 tick 차이를 보였다.
 
 ### Master Analysis
