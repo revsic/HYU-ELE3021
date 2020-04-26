@@ -202,7 +202,7 @@ void            mlfq_init(struct mlfq*);
 int             mlfq_append(struct mlfq*, struct proc*, int);
 int             mlfq_cpu_share(struct mlfq*, struct proc*, int);
 void            mlfq_delete(struct mlfq*, struct proc*);
-int             mlfq_update(struct mlfq*, struct proc*);
+int             mlfq_update(struct mlfq*, struct proc*, uint);
 struct proc*    mlfq_next(struct mlfq*);
 void            mlfq_boost(struct mlfq*);
 void            mlfq_scheduler(struct mlfq*, struct spinlock*) __attribute__((noreturn));
