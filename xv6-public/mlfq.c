@@ -90,10 +90,16 @@ stride_delete(struct stride* this, struct proc* p) {
   this->queue[idx] = 0;
 }
 
-// Update pass value of process with given queue index.
-inline int
-stride_update_internal(struct stride* this, int idx) {
+// Update pass value of given process.
+int
+stride_update(struct stride* this, struct proc* p) {
+  int idx;
   float* pass;
+  if (p == MLFQ_PROC)
+    idx = 0;
+  else
+    idx = p->mlfq.index;
+
   this->pass[idx] += (float)MAXTICKET / this->ticket[idx];
 
   // If pass value exceeds maximum pass value,
@@ -105,18 +111,6 @@ stride_update_internal(struct stride* this, int idx) {
         *pass -= MAXPASS - SCALEPASS;
 
   return MLFQ_NEXT;
-}
-
-// Update pass value of given process.
-int
-stride_update(struct stride* this, struct proc* p) {
-  return stride_update_internal(this, p->mlfq.index);
-}
-
-// Update pass value of MLFQ scheduler.
-int
-stride_update_mlfq(struct stride* this) {
-  return stride_update_internal(this, 0);
 }
 
 // Get next process based on stride scheduling policy.
@@ -225,7 +219,7 @@ mlfq_update(struct mlfq* this, struct proc* p)
     return stride_update(&this->metasched, p);
 
   // Update pass value of MLFQ scheulder.
-  stride_update_mlfq(&this->metasched);
+  stride_update(&this->metasched, MLFQ_PROC);
   // If avilable time is expired, move the process to the next queue.
   if (level + 1 < NMLFQ && p->mlfq.elapsed >= this->expire[level]) {
     if (mlfq_append(this, p, level + 1) != MLFQ_SUCCESS)
@@ -357,7 +351,7 @@ mlfq_scheduler(struct mlfq* this, struct spinlock* lock)
         // If there is nothing runnable.
         if (p == 0) {
           // Update MLFQ pass value for preventing deadlock.
-          keep = stride_update_mlfq(state);
+          keep = stride_update(state, MLFQ_PROC);
           break;
         }
       }
