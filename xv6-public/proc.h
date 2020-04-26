@@ -54,6 +54,7 @@ struct proc {
     int level;                // scheduler level, -1 for stride, 0 ~ 3 for MLFQ
     int index;                // index of process table in scheduler
     uint elapsed;             // cpu time spent by process
+    uint start;               // start tick.
   } mlfq;                     // member for MLFQ scheduler
 };
 
