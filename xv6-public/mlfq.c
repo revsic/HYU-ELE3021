@@ -205,7 +205,7 @@ mlfq_delete(struct mlfq* this, struct proc* p)
 
 // Update process level by checking elapsed time.
 int
-mlfq_update(struct mlfq* this, struct proc* p)
+mlfq_update(struct mlfq* this, struct proc* p, uint ctime)
 {
   int level = p->mlfq.level;
   int index = p->mlfq.index;
@@ -230,7 +230,11 @@ mlfq_update(struct mlfq* this, struct proc* p)
     return MLFQ_NEXT;
   }
 
-  return MLFQ_KEEP;
+  // Check process use CPU time of RR time quantum.
+  if (ctime - p->mlfq.start < this->quantum[level])
+    return MLFQ_KEEP;
+  else
+    return MLFQ_NEXT;
 }
 
 // Get next process with MLFQ scheduling policy.
@@ -371,7 +375,7 @@ mlfq_scheduler(struct mlfq* this, struct spinlock* lock)
       // Update MLFQ states.
       end = sys_uptime();
       p->mlfq.elapsed += end - start;
-      keep = mlfq_update(this, p);
+      keep = mlfq_update(this, p, end);
 
       // If boosting time arrived.
       if (end > boost) {
