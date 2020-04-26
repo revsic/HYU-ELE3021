@@ -384,3 +384,25 @@ mlfq_scheduler(struct mlfq* this, struct spinlock* lock)
     release(lock);
   }
 }
+
+// MLFQ state logger
+void
+mlfq_log(struct mlfq* this, int maxproc)
+{
+  int i, j;
+  struct stride* stride = &this->metasched;
+  cprintf("----------\n");
+  cprintf("tick: %d\n", sys_uptime());
+  for (i = 0; i < maxproc; ++i)
+    cprintf("%p(%d, %d) ", stride->queue[i], stride->ticket[i], (int)stride->pass[i]);
+  cprintf("\n");
+  for (i = 0; i < 3; ++i) {
+    for (j = 0; j < maxproc; ++j) {
+      cprintf("%p(", this->queue[i][j]);
+      if (this->queue[i][j])
+        cprintf("%d, %d", this->queue[i][j]->mlfq.start, this->queue[i][j]->mlfq.elapsed);
+      cprintf(") ");
+    }
+    cprintf("\n");
+  }
+}
