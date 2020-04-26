@@ -14,7 +14,7 @@ Design report에서는 이를 하나의 MLFQ와 두 개의 Stride scheduler를 �
 
 > main - userinit - allocproc
 
-커널은 가장 먼저 `init` 프로세스를 생성하여 실행하는데, 이는 `ptable.proc`의 0번 칸을 고정적으로 점유하게 된다.
+커널은 가장 먼저 `init` 프로세스를 생성하여 실행하는데, 이는 `ptable.proc`의 0번 칸을 거의 고정적으로 점유하게 된다.
 
 이에 아이디어를 착안하여 기본적으로 Stride scheduler를 두고, 큐의 0번 칸을 MLFQ Scheduler로 고정한다. 이후 CPU 할당량을 부여받은 프로세스는 1번칸부터 순서대로 할당 된다.
 
@@ -93,17 +93,13 @@ if (p == 0) {
 
 MLFQ의 경우 상위 큐에 프로세스가 존재하면 우선 실행하고, 아닌 경우 현재 큐의 프로세스를 순서대로 실행해야 한다. 구현 과정에서 다음 프로세스를 가져오는 `mlfq_next`를 abstraction 하였기 때문에 iteration 과정에 현재 어떤 큐를 보고 있고, 어디까지 프로세스를 실행하였는지의 상태를 MLFQ가 별도로 보관하고 있어야 한다.
 
-이를 `struct mlfq`에 `struct iterstate`를 두어 해결하였는데, mlfq_next에서는 toplevel 큐부터 순회를 시작하여 현재 큐에 도달하면 마지막으로 본 process 다음부터 진행하는 방식으로 구현하였다. `ptable.proc`의 크기가 [NPROC = 64]이고, MLFQ가 3xNPROC으로 구성되었기 때문에 프로세스를 검색할 떄마다 linear time이 소요되는 단점이 있지만 인덱싱 없이 iterator의 증감 연산을 이용한다는 점에서 어느 정도 tradeoff를 감안하였다.
+이를 `struct mlfq`에 각 레벨별 마지막으로 탐색한 ptable의 인덱스를 저장하여 해결하였는데, `mlfq_next`에서는 toplevel 큐부터 순회를 시작하여 마지막으로 본 process 다음부터 진행하는 방식으로 구현하였다. `ptable.proc`의 크기가 [NPROC = 64]이고, MLFQ가 3xNPROC으로 구성되었기 때문에 프로세스를 검색할 떄마다 linear time이 소요되는 단점이 있지만 인덱싱 없이 iterator의 증감 연산을 이용한다는 점에서 어느 정도 tradeoff를 감안하였다.
 
 ## sys_uptime, cmostime
 
 현재 커널에는 시간을 확인하는 방식이 두 가지 존재한다. 실행 시점부터 10ms 단위로 정수형 변수를 증가하는 tick과 cmos에서 시간을 읽어오는 cmostime이다. 현재는 tick-based로 프로세스의 실행 시간을 측정하는데, 이 경우 10ms을 채우지 않고 yield를 하는 경우 프로세스가 toplevel 큐에 상존하게 하는 adversarial attack이 가능하다.
 
 cmostime의 경우에는 최소 시간 단위가 초(sec)이기 때문에 더 작은 단위의 측정이 어렵다. 이를 해결하기 위해서는 더 작은 시간 단위가 필요로 하고, 레포트 작성 이후에 더 찾아볼 예정이다.
-
-## Tick checking after context switch
-
-현재는 process가 context switching을 한 후에 scheduler 단계에서 tick 수를 세어 queue의 이동을 결정한다. 이 경우 동일한 프로세스가 다시 올라가더라도 switching overhead를 그대로 들고 가기 때문에 MLFQ의 policy에 따른 benefit을 얻을 수는 있지만 optimal한 솔루션은 아니다. 이후에 trap.c 에서 yield를 하기 전에 tick을 검사하는 방식을 도입할 예정이다.
 
 ## Analysis
 
@@ -181,12 +177,12 @@ STRIDE(10%), cnt: 92
 
 ```
 $ mastertests
-STRIDE(40%), cnt: 459
-STRIDE(10%), cnt: 113
-MLFQ(compute), lev[0]: 2410, lev[1]: 2695, lev[2]: 14896
-MLFQ(yield), lev[0]: 2787, lev[1]: 4124, lev[2]: 13090
+STRIDE(40%), cnt: 420
+STRIDE(10%), cnt: 104
+MLFQ(yield), lev[0]: 1296, lev[1]: 3160, lev[2]: 15545
+MLFQ(compute), lev[0]: 2161, lev[1]: 4410, lev[2]: 13430
 ```
 
-실제로 stride 사이에는 1:4의 비율 차가 드러났지만, mlfq level 사이에는 실제로 1:2 만큼의 차이는 보이지 않았다. 이 현상은 추가 실험을 통해 원인을 밝혀내고, 필요하다면 수정해야 할 부분으로 보인다.
+실제로 stride 사이에는 1:4의 비율 차가 드러났고, mlfq level 사이에도 1:2 만큼의 차이를 보였다.
 
 mlfqtests와 stridetests가 서로 tick을 측정하는 방식이 다르다는 점도 감안하여 추후 실험에는 mlfq와 stride 사이의 tick 차이도 확인해볼 예정이다.
