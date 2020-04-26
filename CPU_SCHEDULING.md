@@ -195,6 +195,10 @@ proc.c의 kill은 myproc을 직접 정리하지 않고 p->killed=1 & p->state=ru
 - [x] use constant
 - [ ] invalid input tests
 
+- [ ] RR time quantum 적용
+- [ ] stride에서 mlfq로 가면 RR quantum 맞춰서 복귀
+- [ ] iterstate 계층마다 상태 분리
+
 **appendix**
 
 process state 수정: allocproc, userinit, fork, exit, wait, scheduler, yield, sleep, wakeup1, kill
