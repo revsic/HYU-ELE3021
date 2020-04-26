@@ -364,6 +364,7 @@ mlfq_scheduler(struct mlfq* this, struct spinlock* lock)
       p->state = RUNNING;
 
       start = sys_uptime();
+      p->mlfq.start = start;
       swtch(&(c->scheduler), p->context);
       switchkvm();
 
