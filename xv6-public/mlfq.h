@@ -12,11 +12,7 @@ struct mlfq {
   uint expire[NPROC];                 // time to downgrade level
   struct proc* queue[NMLFQ][NPROC];   // process queue
   struct stride metasched;            // meta-scheduler for controlling proportion
-
-  struct iterstate {
-    int level;                        // current scheduler level of iteration
-    struct proc** iter;               // current process on an iteration
-  } iter;                             // iterator state
+  struct proc** iterstate[NMLFQ];     // iterator state
 };
 
 enum mlfqstate {

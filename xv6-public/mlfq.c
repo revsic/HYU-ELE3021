@@ -144,16 +144,14 @@ mlfq_init(struct mlfq* this)
     this->expire[i] = expire[i];
     for (j = 0; j < NPROC; ++j, ++iter)
       *iter = 0;
+
+    this->iterstate[i] = this->queue[i];
   }
 
   // Stride scehduler acts as meta-scheduler,
   // which controls the cpu usage between MLFQ scheduling process
   // and stride scheduling process.
   stride_init(&this->metasched);
-
-  // Initialize iterator state to start with first process, initproc.
-  this->iter.level = 0;
-  this->iter.iter = this->queue[0];
 }
 
 // Append process to MLFQ scheduler.
@@ -242,44 +240,29 @@ mlfq_update(struct mlfq* this, struct proc* p, uint ctime)
 struct proc*
 mlfq_next(struct mlfq* this)
 {
-  int i;
+  int i, flag;
   struct proc** iter;
-  struct iterstate* state = &this->iter;
 
-  int retry = 0;
   for (i = 0; i < NMLFQ; ++i) {
-    // Starting with top level,
-    // if the iterator arrived at the level of last iteration,
-    // starts from the next process of last returned
-    // and if there is no process runnable,
-    // re-iterate from the first process of current level.
-    if (i == state->level && !retry)
-      iter = state->iter;
-    else
-      iter = this->queue[i];
-
-    for (; iter != this->queue[i] + NPROC; ++iter) {
+    // Use flag for enabling all sequence check.
+    flag = 1;
+    for (iter = this->iterstate[i] + 1;
+         flag || iter != this->iterstate[i] + 1;
+         ++iter) {
+      flag = 0;
+      // If exceed the range, begin from first.
+      if (iter == &this->queue[i][NPROC])
+        iter = this->queue[i];
       // Just runnable process.
       if (*iter == 0 || (*iter)->state != RUNNABLE)
         continue;
       
       // Update iterator state and return process.
-      state->level = i;
-      state->iter = iter;
-      return *state->iter++;
+      this->iterstate[i] = iter;
+      return *iter;
     }
-
-    if (i == state->level && !retry) {
-      --i;
-      retry = 1;
-    }
-    else
-      retry = 0;
   }
 
-  // Make state indicates first process, initproc.
-  state->level = 0;
-  state->iter = this->queue[0];
   // Nothing to runnable.
   return 0;
 }
