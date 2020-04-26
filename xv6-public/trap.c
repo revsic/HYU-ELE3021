@@ -2,6 +2,7 @@
 #include "defs.h"
 #include "param.h"
 #include "memlayout.h"
+#include "mlfq.h"
 #include "mmu.h"
 #include "proc.h"
 #include "x86.h"
@@ -13,6 +14,10 @@ struct gatedesc idt[256];
 extern uint vectors[];  // in vectors.S: array of 256 entry pointers
 struct spinlock tickslock;
 uint ticks;
+
+// For preventing improper cpu yield for MLFQ.
+extern int sys_uptime();
+extern struct mlfq mlfq;
 
 void
 tvinit(void)
@@ -103,7 +108,9 @@ trap(struct trapframe *tf)
   // Force process to give up CPU on clock tick.
   // If interrupts were on while locks held, would need to check nlock.
   if(myproc() && myproc()->state == RUNNING &&
-     tf->trapno == T_IRQ0+IRQ_TIMER)
+     tf->trapno == T_IRQ0+IRQ_TIMER &&
+     (myproc()->mlfq.level == -1 ||
+      sys_uptime() - myproc()->mlfq.start >= mlfq.quantum[myproc()->mlfq.level]))
     yield();
 
   // Check if the process has been killed since we yielded
