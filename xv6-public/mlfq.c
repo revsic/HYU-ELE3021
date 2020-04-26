@@ -393,16 +393,33 @@ mlfq_log(struct mlfq* this, int maxproc)
   struct stride* stride = &this->metasched;
   cprintf("----------\n");
   cprintf("tick: %d\n", sys_uptime());
-  for (i = 0; i < maxproc; ++i)
-    cprintf("%p(%d, %d) ", stride->queue[i], stride->ticket[i], (int)stride->pass[i]);
+  for (i = 0; i < maxproc; ++i) {
+    cprintf("%p(", stride->queue[i]);
+    if (stride->queue[i] != MLFQ_PROC && stride->queue[i]) {
+      cprintf("%s, ", stride->queue[i]->name);
+    }
+    cprintf("%d, %d) ", stride->ticket[i], (int)stride->pass[i]);
+  }
   cprintf("\n");
   for (i = 0; i < 3; ++i) {
     for (j = 0; j < maxproc; ++j) {
       cprintf("%p(", this->queue[i][j]);
       if (this->queue[i][j])
-        cprintf("%d, %d", this->queue[i][j]->mlfq.start, this->queue[i][j]->mlfq.elapsed);
+        cprintf("%s, %d, %d", this->queue[i][j]->name, this->queue[i][j]->mlfq.start, this->queue[i][j]->mlfq.elapsed);
       cprintf(") ");
     }
     cprintf("\n");
   }
+}
+
+// Check whether interrupt yield the process to scheduling CPU or not.
+int
+mlfq_yieldable(struct mlfq* this, struct proc* p)
+{
+  return 
+    // If process is in stride scheduler, yield process always.
+    p->mlfq.level == -1
+    // If process is in MLFQ scheduler,
+    // yield if it use CPU time of RR time quantum.
+    || sys_uptime() - p->mlfq.start >= this->quantum[p->mlfq.level];
 }

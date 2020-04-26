@@ -207,7 +207,8 @@ struct proc*    mlfq_next(struct mlfq*);
 void            mlfq_boost(struct mlfq*);
 void            mlfq_scheduler(struct mlfq*, struct spinlock*) __attribute__((noreturn));
 
-void            mlfq_log(struct mlfq*, int maxproc);
+void            mlfq_log(struct mlfq*, int);
+int             mlfq_yieldable(struct mlfq*, struct proc*);
 
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x)/sizeof((x)[0]))
