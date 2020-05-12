@@ -17,3 +17,5 @@
 #define MAXSTRIDE    80  // maximum number of stride tickets.
 #define MAXPASS      10000000  // maximum number of pass.
 #define SCALEPASS    100000  // scaling pass.
+
+#define NTHREAD       8  // maximum number of threads.
