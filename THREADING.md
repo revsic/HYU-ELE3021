@@ -40,3 +40,13 @@ exit에서는 강제 종료 요청이 들어왔을 때 하위 프로세스에 �
 ## Design 2
 
 Design1을 구성한 후 추가 예정
+
+## Implementation
+
+- [ ] killed 처리
+- [ ] proc lock 걸기
+- [ ] allocproc, fork, userinit, wait, exit 등
+- [ ] scheduler relative
+- [ ] channel (sleep, wake) 처리
+- [ ] state 처리
+- [ ] syscall
