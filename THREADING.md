@@ -76,3 +76,6 @@ Design1을 구성한 후 추가 예정
 - chan: ~~proc.c~~
 
 ofile, cwd, name, sz, pgdir, state, pid, parent, killed 건들 때 lock 걸기
+
+vm.c proc.c exec.c syscall.c trap.c mlfq.c
+proc.c, exec.c, mlfq.c
