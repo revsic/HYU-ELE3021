@@ -573,15 +573,17 @@ set_cpu_share(int percent)
 
 int
 thread_create(struct uthread *u, void*(*start_routine)(void*), void *arg) {
-  return 0;
+  cprintf("in thread_create: u %p, start_routine %p, arg %p\n", u, start_routine, arg);
+  return 1;
 }
 
 void
 thread_exit(void *retval) {
-
+  cprintf("in thread_exit: %p\b", retval);
 }
 
 int
 thread_join(struct uthread *u, void **retval) {
-  return 0;
+  cprintf("in thread_join: u %p, retval %p, %p\n", u, retval, *retval);
+  return 2;
 }
