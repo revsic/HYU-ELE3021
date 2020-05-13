@@ -50,14 +50,17 @@ Design1을 구성한 후 추가 예정
 
 ## Implementation
 
-- [ ] killed 처리
-- [ ] proc lock 걸기
-- [ ] allocproc, fork, userinit, wait, exit 등
+- [x] killed 처리
+- [x] proc lock 걸기
+- [x] allocproc, fork, userinit, wait, exit 등
 - [ ] scheduler relative
-- [ ] channel (sleep, wake) 처리
-- [ ] state 처리
-- [ ] syscall
-- [ ] params 갯수 늘리기
+- [x] channel (sleep, wake) 처리
+- [x] state 처리
+- [x] syscall
+- [X] params 갯수 늘리기
+
+- [ ] thread iteration
+- [ ] tidx setting
 
 바꿔야 하는 파일
 
