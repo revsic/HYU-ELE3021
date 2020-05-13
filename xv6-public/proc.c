@@ -471,11 +471,10 @@ wakeup1(void *chan)
   struct thread *t;
 
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
-    if(p->state == RUNNABLE) {
-      t = &p->threads[p->tidx];
-      if (t->state == SLEEPING && t->chan == chan)
-        t->state = RUNNABLE;
-    }
+    if(p->state == RUNNABLE)
+      for (t = p->threads; t < &p->threads[NTHREAD]; ++t)
+        if (t->state == SLEEPING && t->chan == chan)
+          t->state = RUNNABLE;
 }
 
 // Wake up all processes sleeping on chan.
