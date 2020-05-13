@@ -41,12 +41,17 @@ idtinit(void)
 void
 trap(struct trapframe *tf)
 {
+  struct proc *p = myproc();
+  struct thread *t = 0;
+  if (p)
+    t = &p->threads[p->tidx];
+
   if(tf->trapno == T_SYSCALL){
-    if(myproc()->killed)
+    if(p->killed)
       exit();
-    myproc()->tf = tf;
+    t->tf = tf;
     syscall();
-    if(myproc()->killed)
+    if(p->killed)
       exit();
     return;
   }
@@ -94,25 +99,25 @@ trap(struct trapframe *tf)
     // In user space, assume process misbehaved.
     cprintf("pid %d %s: trap %d err %d on cpu %d "
             "eip 0x%x addr 0x%x--kill proc\n",
-            myproc()->pid, myproc()->name, tf->trapno,
+            p->pid, p->name, tf->trapno,
             tf->err, cpuid(), tf->eip, rcr2());
-    myproc()->killed = 1;
+    p->killed = 1;
   }
 
   // Force process exit if it has been killed and is in user space.
   // (If it is still executing in the kernel, let it keep running
   // until it gets to the regular system call return.)
-  if(myproc() && myproc()->killed && (tf->cs&3) == DPL_USER)
+  if(p && p->killed && (tf->cs&3) == DPL_USER)
     exit();
 
   // Force process to give up CPU on clock tick.
   // If interrupts were on while locks held, would need to check nlock.
-  if(myproc() && myproc()->state == RUNNING &&
+  if(p && t->state == RUNNING &&
      tf->trapno == T_IRQ0+IRQ_TIMER &&
-     mlfq_yieldable(&mlfq, myproc()))
+     mlfq_yieldable(&mlfq, p))
     yield();
 
   // Check if the process has been killed since we yielded
-  if(myproc() && myproc()->killed && (tf->cs&3) == DPL_USER)
+  if(p && p->killed && (tf->cs&3) == DPL_USER)
     exit();
 }
