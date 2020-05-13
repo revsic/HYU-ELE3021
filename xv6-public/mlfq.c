@@ -120,11 +120,16 @@ stride_next(struct stride* this) {
   float* pass = this->pass;
   float* minpass = this->pass;
   struct proc** queue = this->queue;
+  struct proc *p;
 
   // Get process which is runnable and have minimum pass value.
   for (iter = pass + 1; iter != &pass[NPROC]; ++iter)
-    if (*iter != -1 && *minpass > *iter && queue[iter - pass]->state == RUNNABLE)
-      minpass = iter;
+    if (*iter != -1 && *minpass > *iter) {
+      p = queue[iter - pass];
+      /// TODO: thread iteration
+      if (p->threads[p->tidx].state == RUNNABLE) 
+        minpass = iter;
+    }
 
   return queue[minpass - pass];
 }
@@ -242,6 +247,7 @@ mlfq_next(struct mlfq* this)
 {
   int i, flag;
   struct proc** iter;
+  struct proc* p;
 
   for (i = 0; i < NMLFQ; ++i) {
     // Use flag for enabling all sequence check.
@@ -254,12 +260,13 @@ mlfq_next(struct mlfq* this)
       if (iter == &this->queue[i][NPROC])
         iter = this->queue[i];
       // Just runnable process.
-      if (*iter == 0 || (*iter)->state != RUNNABLE)
+      p = *iter;
+      if (p == 0 || p->threads[p->tidx].state != RUNNABLE)
         continue;
       
       // Update iterator state and return process.
       this->iterstate[i] = iter;
-      return *iter;
+      return p;
     }
   }
 
@@ -327,7 +334,7 @@ mlfq_scheduler(struct mlfq* this, struct spinlock* lock)
     do {
       // If previous run commands replace the proc or
       // current process is not runnable.
-      if (keep == MLFQ_NEXT || p->state != RUNNABLE) {
+      if (keep == MLFQ_NEXT || p->threads[p->tidx].state != RUNNABLE) {
         // Get next process from method to run.
         p = stride_next(state);
         // If given process is MLFQ scheduler,
@@ -348,11 +355,11 @@ mlfq_scheduler(struct mlfq* this, struct spinlock* lock)
       // and then reacquire it before jumping back to us.
       c->proc = p;
       switchuvm(p);
-      p->state = RUNNING;
+      p->threads[p->tidx].state = RUNNING;
 
       start = sys_uptime();
       p->mlfq.start = start;
-      swtch(&(c->scheduler), p->context);
+      swtch(&(c->scheduler),p->threads[p->tidx].context);
       switchkvm();
 
       // Update MLFQ states.
