@@ -18,6 +18,7 @@ exec(char *path, char **argv)
   struct proghdr ph;
   pde_t *pgdir, *oldpgdir;
   struct proc *curproc = myproc();
+  struct thread* t;
 
   begin_op();
 
@@ -97,9 +98,22 @@ exec(char *path, char **argv)
   oldpgdir = curproc->pgdir;
   curproc->pgdir = pgdir;
   curproc->sz = sz;
-  /// TODO: turn down other threads and set tidx as 0
-  curproc->threads[curproc->tidx].tf->eip = elf.entry;  // main
-  curproc->threads[curproc->tidx].tf->esp = sp;
+
+  for (t = curproc->threads; t < &curproc->threads[NTHREAD]; ++t) {
+    if (t - curproc->threads == curproc->tidx) {
+      t->tf->eip = elf.entry;
+      t->tf->esp = sp;
+      continue;
+    }
+    
+    if (t->state != UNUSED)
+      kfree(t->kstack);
+    
+    t->kstack = 0;
+    t->state = UNUSED;
+    t->tid = 0;
+  }
+
   switchuvm(curproc);
   freevm(oldpgdir);
   return 0;
