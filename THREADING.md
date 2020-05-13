@@ -16,7 +16,7 @@ process가 state를 관리한다면, thread는 flow를 관리하기 때문에 pr
 
 우선 [proc.h](./xv6-public/proc.h)의 proc structure를 수정한다. 기존의 proc은 [sz, pgdir, kstack, state, pid, parent, trapframe, context, chan, killed, ofile, cwd, name]로 구성되었다면, 실행 흐름에 관련된 부분들을 thread structure로 분리해낸다.
 
-- struct proc: sz, pgdir, kstack, tf, context, pid, parent, killed, ofile, cwd, name, threadlist
+- struct proc: sz, pgdir, kstack, state, pid, parent, tf, context, killed, ofile, cwd, name, threadlist
 - struct thread: state, tid, chan, context, user_thread
 
 이후 scheduler에 의해 선택된 process는 thread 리스트를 순회하며 1tick씩 thread를 실행한다. context switch에서는 page directory와 VM을 공유하기 때문에 switchuvm, cr3 수정 없이 thread의 context를 kstack의 context에 복사하여 sched, 돌아와서는 kstack의 context를 thread에 복사한다. 이렇게 되면 TLB cache miss와 같은 vm exchange 관련 overhead를 줄일 수 있게 된다.
@@ -50,3 +50,15 @@ Design1을 구성한 후 추가 예정
 - [ ] channel (sleep, wake) 처리
 - [ ] state 처리
 - [ ] syscall
+- [ ] params 갯수 늘리기
+
+바꿔야 하는 파일
+
+| list | killed | state | chan | proc lock | scheduler | allocproc | syscall |
+| ---- | ------ | ----- | ---- | --------- | --------- | --------- | ------- |
+| console.c | O |       |      |           |           |           |         |
+| mlfq.c | O    | O     |      |           | O         |           |         |
+| pipe.c | O    |       |      |           |           |           |         |
+| proc.c | O    | O     | O    | O         |           | O         | O       |
+| sysproc.c | O |       |      |           |           |           | O       |
+| trap.c | O    | O     |      |           |           |           |         |
