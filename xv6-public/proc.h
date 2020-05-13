@@ -35,17 +35,17 @@ struct context {
 enum procstate { UNUSED, EMBRYO, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
 
 struct uthread {
-  int retval;
+  void *retval;
 };
 
 struct thread {
   enum procstate state;
   int tid;
   void *chan;
-  char* kstack;
+  char *kstack;
   struct trapframe *tf;
   struct context *context;
-  struct uthread* user_thread;
+  struct uthread *user_thread;
 };
 
 // Per-process state

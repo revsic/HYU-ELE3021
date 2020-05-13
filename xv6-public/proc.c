@@ -571,19 +571,95 @@ set_cpu_share(int percent)
   return mlfq_cpu_share(&mlfq, myproc(), percent);
 }
 
+void
+thread_epilogue(void) {
+  struct proc *p;
+  struct thread *t;
+
+  acquire(&ptable.lock);
+
+  p = myproc();
+  t = &p->threads[p->tidx];
+
+  kfree(t->kstack);
+  t->kstack = 0;
+  t->state = UNUSED;
+  t->tid = 0;
+
+  wakeup1(t->user_thread);
+
+  sched();
+  panic("thread_epilogue: unreachable statements");
+}
+
 int
 thread_create(struct uthread *u, void*(*start_routine)(void*), void *arg) {
-  cprintf("in thread_create: u %p, start_routine %p, arg %p\n", u, start_routine, arg);
-  return 1;
+  int sz;
+  char *sp;
+  struct proc *p;
+  struct thread *t;
+
+  acquire(&ptable.lock);
+
+  p = myproc();
+  for (t = p->threads; t < &p->threads[NTHREAD]; ++t)
+    if (t->state == UNUSED)
+      goto find;
+  
+  release(&ptable.lock);
+  return -1;
+
+find:
+  t->tid = nexttid++;
+  if ((t->kstack = kalloc()) == 0) {
+    t->state = UNUSED;
+    return -1;
+  }
+  sp = t->kstack + KSTACKSIZE;
+
+  sp -= sizeof *t->tf;
+  t->tf = (struct trapframe*)sp;
+
+  sp -= 4;
+  *(uint*)sp = (uint)trapret;
+
+  sp -= sizeof *t->context;
+  t->context = (struct context*)sp;
+  memset(t->context, 0, sizeof *t->context);
+  t->context->eip = (uint)forkret;
+
+  if ((sz = allocuvm(p->pgdir, p->sz, p->sz + 2 * PGSIZE)) == 0)
+    panic("thread_create: cannot allocate stack memory");
+  
+  clearpteu(p->pgdir, (char*)(sz - 2 * PGSIZE));
+  sp = (char*)sz;
+  p->sz = sz;
+
+  sp -= 4;
+  *(uint*)sp = (uint)arg;
+
+  sp -= 4;
+  *(uint*)sp = (uint)thread_epilogue;
+
+  t->tf->esp = (uint)sp;
+  t->tf->eip = (uint)start_routine;
+
+  t->user_thread = u;
+  t->state = RUNNABLE;
+  release(&ptable.lock);
+  return 0;
 }
 
 void
 thread_exit(void *retval) {
-  cprintf("in thread_exit: %p\b", retval);
+  struct proc *p = myproc();
+  p->threads[p->tidx].user_thread->retval = retval;
+  thread_epilogue();
 }
 
 int
 thread_join(struct uthread *u, void **retval) {
-  cprintf("in thread_join: u %p, retval %p, %p\n", u, retval, *retval);
-  return 2;
+  sleep(u, &ptable.lock);
+  *retval = u->retval;
+  return 0;
 }

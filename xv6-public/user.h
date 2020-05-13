@@ -2,7 +2,7 @@ struct stat;
 struct rtcdate;
 
 struct thread_t {
-    int retval;
+    void *retval;
 };
 
 // system calls
