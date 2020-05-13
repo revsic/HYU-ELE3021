@@ -37,6 +37,13 @@ exit에서는 강제 종료 요청이 들어왔을 때 하위 프로세스에 �
 
 메인 스레드를 SLEEP 상태로 두고, channel을 tid로 설정한다. 이후 helper에서 sibling threads 중 channel이 자신의 tid와 동일한 스레드를 wakeup 하는 방식으로 작동시킨다.
 
+
+## Design 1 수정
+
+context 대신에 kstack 두고 돌리기
+
+switchuvm에서 kstack 설정하는 부분만 초기화
+
 ## Design 2
 
 Design1을 구성한 후 추가 예정
@@ -62,3 +69,10 @@ Design1을 구성한 후 추가 예정
 | proc.c | O    | O     | O    | O         |           | O         | O       |
 | sysproc.c | O |       |      |           |           |           | O       |
 | trap.c | O    | O     |      |           |           |           |         |
+
+- kstack: ~~vm.c~~, ~~proc.c~~
+- tf: ~~exec.c~~, ~~proc.c~~, ~~syscall.c~~, ~~trap.c~~
+- context: mlfq.c, ~~proc.c~~
+- chan: ~~proc.c~~
+
+ofile, cwd, name, sz, pgdir, state, pid, parent, killed 건들 때 lock 걸기
