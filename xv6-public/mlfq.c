@@ -125,23 +125,20 @@ stride_update(struct stride* this, struct proc* p) {
 
 // Get next process based on stride scheduling policy.
 struct proc*
-stride_next(struct stride* this) {
+stride_next(struct stride* this, int* tidx) {
+  int idx;
   float* iter;
-  float* pass = this->pass;
   float* minpass = this->pass;
-  struct proc** queue = this->queue;
-  struct proc *p;
 
   // Get process which is runnable and have minimum pass value.
-  for (iter = pass + 1; iter != &pass[NPROC]; ++iter)
-    if (*iter != -1 && *minpass > *iter) {
-      p = queue[iter - pass];
-      /// TODO: thread iteration
-      if (p->threads[p->tidx].state == RUNNABLE) 
+  for (iter = this->pass + 1; iter != &this->pass[NPROC]; ++iter)
+    if (*iter != -1 && *minpass > *iter)
+      if ((idx = runnable(this->queue[iter - this->pass])) != -1) {
         minpass = iter;
-    }
+        *tidx = idx;
+      }
 
-  return queue[minpass - pass];
+  return this->queue[minpass - this->pass];
 }
 
 // Initialize MLFQ scheduler. 
@@ -253,9 +250,9 @@ mlfq_update(struct mlfq* this, struct proc* p, uint ctime)
 // Get next process with MLFQ scheduling policy.
 // If it returns zero, it means nothing runnaable.
 struct proc*
-mlfq_next(struct mlfq* this)
+mlfq_next(struct mlfq* this, int* tidx)
 {
-  int i, flag;
+  int i, flag, idx;
   struct proc** iter;
   struct proc* p;
 
@@ -271,12 +268,12 @@ mlfq_next(struct mlfq* this)
         iter = this->queue[i];
       // Just runnable process.
       p = *iter;
-      /// TODO: Thread iteration
-      if (p == 0 || p->threads[p->tidx].state != RUNNABLE)
+      if (p == 0 || (idx = runnable(p)) == -1)
         continue;
       
       // Update iterator state and return process.
       this->iterstate[i] = iter;
+      *tidx = idx;
       return p;
     }
   }
@@ -326,7 +323,7 @@ mlfq_boost(struct mlfq* this)
 void
 mlfq_scheduler(struct mlfq* this, struct spinlock* lock)
 {
-  int keep;
+  int keep, idx;
   uint start, end, boost, boostunit;
   struct proc* p = 0;
   struct cpu* c = mycpu();
@@ -347,11 +344,11 @@ mlfq_scheduler(struct mlfq* this, struct spinlock* lock)
       // current process is not runnable.
       if (keep == MLFQ_NEXT || p->threads[p->tidx].state != RUNNABLE) {
         // Get next process from method to run.
-        p = stride_next(state);
+        p = stride_next(state, &idx);
         // If given process is MLFQ scheduler,
         // request a new process.
         if (p == MLFQ_PROC)
-          p = mlfq_next(this);
+          p = mlfq_next(this, &idx);
 
         // If there is nothing runnable.
         if (p == 0) {
@@ -359,6 +356,8 @@ mlfq_scheduler(struct mlfq* this, struct spinlock* lock)
           keep = stride_update(state, MLFQ_PROC);
           break;
         }
+
+        p->tidx = idx;
       }
 
       // Switch to chosen process.

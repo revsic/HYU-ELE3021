@@ -201,14 +201,14 @@ void            stride_init(struct stride*);
 int             stride_append(struct stride*, struct proc*, int);
 void            stride_delete(struct stride*, struct proc*);
 int             stride_update(struct stride*, struct proc*);
-struct proc*    stride_next(struct stride*);
+struct proc*    stride_next(struct stride*, int*);
 
 void            mlfq_init(struct mlfq*);
 int             mlfq_append(struct mlfq*, struct proc*, int);
 int             mlfq_cpu_share(struct mlfq*, struct proc*, int);
 void            mlfq_delete(struct mlfq*, struct proc*);
 int             mlfq_update(struct mlfq*, struct proc*, uint);
-struct proc*    mlfq_next(struct mlfq*);
+struct proc*    mlfq_next(struct mlfq*, int*);
 void            mlfq_boost(struct mlfq*);
 void            mlfq_scheduler(struct mlfq*, struct spinlock*) __attribute__((noreturn));
 
