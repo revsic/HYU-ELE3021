@@ -22,6 +22,7 @@ void
 stride_init(struct stride* this) {
   int i;
   // Initialize MLFQ scheduler
+  this->quantum = 5;
   this->total = 0;
   this->pass[0] = 0;
   this->ticket[0] = MAXTICKET;
@@ -411,10 +412,11 @@ mlfq_log(struct mlfq* this, int maxproc)
 int
 mlfq_yieldable(struct mlfq* this, struct proc* p)
 {
+  int dur = sys_uptime() - p->mlfq.start;
+  // yield if it use CPU time of RR time quantum.
   return 
-    // If process is in stride scheduler, yield process always.
-    p->mlfq.level == -1
-    // If process is in MLFQ scheduler,
-    // yield if it use CPU time of RR time quantum.
-    || sys_uptime() - p->mlfq.start >= this->quantum[p->mlfq.level];
+    // for stride scheduler
+    (p->mlfq.level == -1 && dur >= this->metasched.quantum)
+    // for mlfq scheduler
+    || dur >= this->quantum[p->mlfq.level];
 }

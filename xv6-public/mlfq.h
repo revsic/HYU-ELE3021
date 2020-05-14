@@ -1,5 +1,6 @@
 // Stride scheduler context
 struct stride {
+  uint quantum;
   uint total;                 // total proportion of stride scheduling process
   float pass[NPROC];          // pass values, sum of inverse ticket
   uint ticket[NPROC];         // proportion of stride scheduling process
