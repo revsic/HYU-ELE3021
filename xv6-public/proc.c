@@ -387,6 +387,28 @@ sched(void)
   mycpu()->intena = intena;
 }
 
+void
+next_thread(struct proc* p) {
+  struct thread* iter;
+  struct thread* t = &p->threads[p->tidx];
+  acquire(&ptable.lock);
+  for (iter = t + 1; ; ++iter) {
+    if (iter == &p->threads[NTHREAD])
+      iter = p->threads;
+    if (iter == t)
+      break;
+    
+    if (iter->state == RUNNABLE) {
+      p->tidx = iter - p->threads;
+      switchuvm_thread(p);
+      swtch(&t->context, iter->context);
+      switchkvm();
+      break;
+    }
+  }
+  release(&ptable.lock);
+}
+
 // Give up the CPU for one scheduling round.
 void
 yield(void)
