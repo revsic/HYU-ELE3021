@@ -179,6 +179,23 @@ switchuvm(struct proc *p)
   popcli();
 }
 
+void
+switchuvm_thread(struct proc *p)
+{
+  struct thread *t;
+  if(p == 0)
+    panic("switchuvm: no process");
+  t = &p->threads[p->tidx];
+  if(t->kstack == 0)
+    panic("switchuvm: no kstack");
+  if(p->pgdir == 0)
+    panic("switchuvm: no pgdir");
+
+  pushcli();
+  mycpu()->ts.esp0 = (uint)t->kstack + KSTACKSIZE;
+  popcli();
+}
+
 // Load the initcode into address 0 of pgdir.
 // sz must be less than a page.
 void
