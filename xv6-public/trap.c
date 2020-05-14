@@ -117,6 +117,8 @@ trap(struct trapframe *tf)
      mlfq_yieldable(&mlfq, p))
     yield();
 
+  /// TODO: swtch + switchuvm_thread at every timer int
+
   // Check if the process has been killed since we yielded
   if(p && p->killed && (tf->cs&3) == DPL_USER)
     exit();
