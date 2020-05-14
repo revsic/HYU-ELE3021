@@ -12,6 +12,15 @@ extern int sys_uptime(void);
 
 static struct proc* MLFQ_PROC = (struct proc*)-1;
 
+static int
+runnable(struct proc* p) {
+  struct thread* t;
+  for (t = p->threads; t < &p->threads[NTHREAD]; ++t)
+    if (t->state == RUNNABLE)
+      return t - p->threads;
+  return -1;
+}
+
 // Initialize stride scheduler.
 // First process is MLFQ scheduler.
 // Function mlfq_cpu_share moves a process to the stride scheduler,
