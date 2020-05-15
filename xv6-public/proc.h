@@ -35,6 +35,8 @@ struct context {
 enum procstate { UNUSED, EMBRYO, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
 
 struct uthread {
+  int tid;
+  int done;
   void *retval;
 };
 
