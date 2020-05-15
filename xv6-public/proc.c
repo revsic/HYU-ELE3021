@@ -603,12 +603,14 @@ thread_epilogue(void) {
   p = myproc();
   t = &p->threads[p->tidx];
 
+  t->user_thread->done = 1;
+  wakeup1(t->user_thread);
+
   kfree(t->kstack);
   t->kstack = 0;
   t->state = UNUSED;
   t->tid = 0;
-
-  wakeup1(t->user_thread);
+  t->user_thread = 0;
 
   sched();
   panic("thread_epilogue: unreachable statements");
@@ -666,6 +668,10 @@ find:
   t->tf->esp = (uint)sp;
   t->tf->eip = (uint)start_routine;
 
+  u->tid = t->tid;
+  u->done = 0;
+  u->retval = 0;
+
   t->user_thread = u;
   t->state = RUNNABLE;
   release(&ptable.lock);
@@ -681,7 +687,15 @@ thread_exit(void *retval) {
 
 int
 thread_join(struct uthread *u, void **retval) {
-  sleep(u, &ptable.lock);
+  acquire(&ptable.lock);
+  do {
+    if (u->done)
+      break;
+
+    sleep(u, &ptable.lock);
+  } while (0);
+
   *retval = u->retval;
+  release(&ptable.lock);
   return 0;
 }
