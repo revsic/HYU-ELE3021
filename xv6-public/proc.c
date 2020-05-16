@@ -603,14 +603,9 @@ thread_epilogue(void) {
   p = myproc();
   t = &p->threads[p->tidx];
 
+  t->state = ZOMBIE;
   t->user_thread->done = 1;
   wakeup1(t->user_thread);
-
-  kfree(t->kstack);
-  t->kstack = 0;
-  t->state = UNUSED;
-  t->tid = 0;
-  t->user_thread = 0;
 
   sched();
   panic("thread_epilogue: unreachable statements");
@@ -689,6 +684,9 @@ thread_exit(void *retval) {
 
 int
 thread_join(struct uthread *u, void **retval) {
+  struct proc* p;
+  struct thread* t;
+
   acquire(&ptable.lock);
   do {
     if (u->done)
@@ -696,6 +694,21 @@ thread_join(struct uthread *u, void **retval) {
 
     sleep(u, &ptable.lock);
   } while (0);
+
+  p = myproc();
+  for (t = p->threads; t < &p->threads[NTHREAD]; ++t)
+    if (t->state == ZOMBIE)
+      goto found;
+
+  release(&ptable.lock);
+  return -1;
+
+found:
+  kfree(t->kstack);
+  t->kstack = 0;
+  t->state = UNUSED;
+  t->tid = 0;
+  t->user_thread = 0;
 
   *retval = u->retval;
   release(&ptable.lock);
