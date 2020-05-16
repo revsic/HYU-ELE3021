@@ -2,6 +2,8 @@ struct stat;
 struct rtcdate;
 
 struct thread_t {
+    int tid;
+    int done;
     void *retval;
 };
 
