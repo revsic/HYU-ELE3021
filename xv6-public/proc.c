@@ -652,13 +652,14 @@ find:
   memset(t->context, 0, sizeof *t->context);
   t->context->eip = (uint)forkret;
 
-  if ((sz = allocuvm(p->pgdir, p->sz, p->sz + 2 * PGSIZE)) == 0)
+  sz = PGROUNDUP(p->sz);
+  if ((sz = allocuvm(p->pgdir, sz, sz + 2 * PGSIZE)) == 0)
     panic("thread_create: cannot allocate stack memory");
-  
+
   clearpteu(p->pgdir, (char*)(sz - 2 * PGSIZE));
-  sp = (char*)sz;
   p->sz = sz;
 
+  sp = (char*)sz;
   sp -= 4;
   *(uint*)sp = (uint)arg;
 
