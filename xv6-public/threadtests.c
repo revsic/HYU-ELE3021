@@ -9,6 +9,26 @@ start_routine(void *arg) {
     return 0;
 }
 
+void*
+counter(void* arg) {
+    int i;
+    for (i = 0; i < 100; ++i)
+        printf(1, "%d ", i);
+
+    thread_exit(0);
+    return 0;
+}
+
+void*
+counter10(void* arg) {
+    int i;
+    for (i = 0; i < 1000; i += 10)
+        printf(1, "%d ", i);
+
+    thread_exit(0);
+    return 0;
+}
+
 int
 main(int argc, char* argv[])
 {
@@ -19,5 +39,14 @@ main(int argc, char* argv[])
     int ret2 = thread_join(&thread, &retval);
     printf(1, "ret1 %d, ret2 %d\n", ret1, ret2);
     printf(1, "arg %p, fptr %p\n", str, start_routine);
+    printf(1, "retval: %p\n", retval);
+
+    struct thread_t thread2;
+    thread_create(&thread, counter, 0);
+    thread_create(&thread2, counter10, 0);
+
+    thread_join(&thread, &retval);
+    thread_join(&thread2, &retval);
+
     exit();
 }
