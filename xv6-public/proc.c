@@ -643,6 +643,7 @@ find:
 
   sp -= sizeof *t->tf;
   t->tf = (struct trapframe*)sp;
+  *t->tf = *p->threads[p->tidx].tf;
 
   sp -= 4;
   *(uint*)sp = (uint)trapret;
