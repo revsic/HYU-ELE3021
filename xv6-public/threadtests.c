@@ -13,7 +13,7 @@ void*
 counter(void* arg) {
     int i;
     for (i = 0; i < 100; ++i)
-        printf(1, "%d ", i);
+        printf(1, "%d\n", i);
 
     thread_exit(0);
     return 0;
@@ -23,7 +23,7 @@ void*
 counter10(void* arg) {
     int i;
     for (i = 0; i < 1000; i += 10)
-        printf(1, "%d ", i);
+        printf(1, "%d\n", i);
 
     thread_exit(0);
     return 0;
@@ -32,16 +32,18 @@ counter10(void* arg) {
 int
 main(int argc, char* argv[])
 {
+    // int ret1, ret2;
     void *retval;
-    char *str = "asdf";
-    struct thread_t thread;
-    int ret1 = thread_create(&thread, start_routine, str);
-    int ret2 = thread_join(&thread, &retval);
-    printf(1, "ret1 %d, ret2 %d\n", ret1, ret2);
-    printf(1, "arg %p, fptr %p\n", str, start_routine);
-    printf(1, "retval: %p\n", retval);
+    // char *str = "asdf";
+    struct thread_t thread, thread2;
 
-    struct thread_t thread2;
+    // printf(1, "arg %p, fptr %p\n", str, start_routine);
+
+    // ret1 = thread_create(&thread, start_routine, str);
+    // ret2 = thread_join(&thread, &retval);
+    // printf(1, "ret1 %d, ret2 %d\n", ret1, ret2);
+    // printf(1, "retval: %p\n", retval);
+
     thread_create(&thread, counter, 0);
     thread_create(&thread2, counter10, 0);
 
