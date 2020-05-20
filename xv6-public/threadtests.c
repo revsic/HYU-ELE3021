@@ -33,8 +33,8 @@ int
 main(int argc, char* argv[])
 {
     // int ret1, ret2;
-    void *retval;
     // char *str = "asdf";
+    void *retval;
     struct thread_t thread, thread2;
 
     // printf(1, "arg %p, fptr %p\n", str, start_routine);
