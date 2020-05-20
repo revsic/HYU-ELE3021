@@ -115,7 +115,8 @@ trap(struct trapframe *tf)
   if (p && t->state == RUNNING && tf->trapno == T_IRQ0+IRQ_TIMER) {
     if (mlfq_yieldable(&mlfq, p))
       yield();
-    next_thread(p);
+    else
+      next_thread(p);
   }
 
   // Check if the process has been killed since we yielded
