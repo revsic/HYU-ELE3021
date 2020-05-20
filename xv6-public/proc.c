@@ -392,6 +392,7 @@ next_thread(struct proc* p) {
   struct thread* iter;
   struct thread* t = &p->threads[p->tidx];
   acquire(&ptable.lock);
+
   for (iter = t + 1; ; ++iter) {
     if (iter == &p->threads[NTHREAD])
       iter = p->threads;
@@ -399,6 +400,7 @@ next_thread(struct proc* p) {
       break;
     
     if (iter->state == RUNNABLE) {
+      t->state = RUNNABLE;
       p->tidx = iter - p->threads;
       switchuvm_thread(p);
       swtch(&t->context, iter->context);
