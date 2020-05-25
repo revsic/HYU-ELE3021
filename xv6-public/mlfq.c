@@ -329,6 +329,7 @@ mlfq_scheduler(struct mlfq* this, struct spinlock* lock)
   struct cpu* c = mycpu();
   struct stride* state = &this->metasched;
 
+  idx = 0;
   c->proc = 0;
   boostunit = this->expire[NMLFQ - 1];
 
@@ -366,6 +367,8 @@ mlfq_scheduler(struct mlfq* this, struct spinlock* lock)
       c->proc = p;
       switchuvm(p);
       p->threads[p->tidx].state = RUNNING;
+
+      cprintf("mlfq: pid %d / tid %d / tidx %d\n", p->pid, p->threads[p->tidx].tid, p->tidx);
 
       start = sys_uptime();
       p->mlfq.start = start;
