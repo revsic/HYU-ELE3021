@@ -368,11 +368,9 @@ mlfq_scheduler(struct mlfq* this, struct spinlock* lock)
       switchuvm(p);
       p->threads[p->tidx].state = RUNNING;
 
-      cprintf("mlfq: pid %d / tid %d / tidx %d\n", p->pid, p->threads[p->tidx].tid, p->tidx);
-
       start = sys_uptime();
       p->mlfq.start = start;
-      swtch(&(c->scheduler),p->threads[p->tidx].context);
+      swtch(&(c->scheduler), p->threads[p->tidx].context);
       switchkvm();
 
       // Update MLFQ states.
