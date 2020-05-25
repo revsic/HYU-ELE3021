@@ -407,8 +407,6 @@ next_thread(struct proc* p) {
       p->tidx = iter - p->threads;
       switchuvm_thread(p);
 
-      cprintf("nthread: pid %d / tid %d / tidx %d\n", p->pid, p->threads[p->tidx].tid, p->tidx);
-
       intena = mycpu()->intena;
       swtch(&t->context, iter->context);
       mycpu()->intena = intena;
