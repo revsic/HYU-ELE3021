@@ -389,6 +389,7 @@ sched(void)
 
 void
 next_thread(struct proc* p) {
+  int intena;
   struct thread* iter;
   struct thread* t = &p->threads[p->tidx];
   acquire(&ptable.lock);
@@ -401,9 +402,17 @@ next_thread(struct proc* p) {
     
     if (iter->state == RUNNABLE) {
       t->state = RUNNABLE;
+      iter->state = RUNNING;
+
       p->tidx = iter - p->threads;
       switchuvm_thread(p);
+
+      cprintf("nthread: pid %d / tid %d / tidx %d\n", p->pid, p->threads[p->tidx].tid, p->tidx);
+
+      intena = mycpu()->intena;
       swtch(&t->context, iter->context);
+      mycpu()->intena = intena;
+
       switchkvm();
       break;
     }
