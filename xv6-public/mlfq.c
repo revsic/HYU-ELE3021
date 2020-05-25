@@ -148,7 +148,7 @@ mlfq_init(struct mlfq* this)
   int i, j;
   struct proc** iter = &this->queue[0][0];
 
-  static const uint quantum[] = { 50, 10, 20 };
+  static const uint quantum[] = { 5, 10, 20 };
   static const uint expire[] = { 20, 40, 200 };
 
   for (i = 0; i < NMLFQ; ++i) {
