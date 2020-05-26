@@ -410,8 +410,6 @@ next_thread(struct proc* p) {
       intena = mycpu()->intena;
       swtch(&t->context, iter->context);
       mycpu()->intena = intena;
-
-      switchkvm();
       break;
     }
   }
