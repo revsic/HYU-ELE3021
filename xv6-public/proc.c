@@ -643,8 +643,7 @@ thread_epilogue(void) {
 
   // Update thread state.
   t->state = ZOMBIE;
-  t->user_thread->done = 1;
-  wakeup1(t->user_thread);
+  wakeup1((void*)t->tid);
 
   sched();
   panic("thread_epilogue: unreachable statements");
@@ -653,7 +652,7 @@ thread_epilogue(void) {
 // Create thread with given user thread structure
 // and start routine.
 int
-thread_create(struct uthread *u, void*(*start_routine)(void*), void *arg) {
+thread_create(int *tid, void*(*start_routine)(void*), void *arg) {
   int tidx, sz;
   char *sp;
   struct proc *p;
@@ -737,11 +736,9 @@ find:
   t->tf->eip = (uint)start_routine;
 
   // Initialize user thread structure.
-  u->tid = t->tid;
-  u->done = 0;
-  u->retval = 0;
+  *tid = t->tid;
 
-  t->user_thread = u;
+  t->retval = 0;
   t->state = RUNNABLE;
   release(&ptable.lock);
   return 0;
@@ -751,7 +748,7 @@ find:
 void
 thread_exit(void *retval) {
   struct proc *p = myproc();
-  p->threads[p->tidx].user_thread->retval = retval;
+  p->threads[p->tidx].retval = retval;
   thread_epilogue();
 }
 
@@ -759,37 +756,39 @@ thread_exit(void *retval) {
 // It acts like `wait` on exit process.
 // It clean up the exit thread and write the return value.
 int
-thread_join(struct uthread *u, void **retval) {
+thread_join(int tid, void **retval) {
   struct proc* p;
   struct thread* t;
 
   acquire(&ptable.lock);
-  // Wait until target thread is done.
-  do {
-    if (u->done)
-      break;
-
-    sleep(u, &ptable.lock);
-  } while (0);
-
-  p = myproc();
-  // Find zombie thread.
-  for (t = p->threads; t < &p->threads[NTHREAD]; ++t)
-    if (t->state == ZOMBIE)
-      goto found;
+  // Searching given thread ID.
+  for (p = ptable.proc; p < &ptable.proc[NPROC]; ++p)
+    if (p->state == RUNNABLE)
+      for (t = p->threads; t < &p->threads[NTHREAD]; ++t)
+        if (t->tid == tid)
+          goto found;    
 
   release(&ptable.lock);
   return -1;
 
 found:
+  // Wait until target thread is done.
+  do {
+    if (t->state == ZOMBIE)
+      break;
+
+    sleep((void*)tid, &ptable.lock);
+  } while (0);
+
+  // Write return value.
+  *retval = t->retval;
+
   // Free exit thread.
   t->kstack = 0;
   t->state = UNUSED;
   t->tid = 0;
-  t->user_thread = 0;
+  t->retval = 0;
 
-  // Write return value.
-  *retval = u->retval;
   release(&ptable.lock);
   return 0;
 }
