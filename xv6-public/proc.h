@@ -67,6 +67,7 @@ struct proc {
   int tidx;                         // index of running thread
   struct thread threads[NTHREAD];   // thread pool
   char* kstacks[NTHREAD];           // kernel stack pool
+  uint ustacks[NTHREAD];            // user stack pool
 
   struct {
     int level;                // scheduler level, -1 for stride, 0 ~ 3 for MLFQ
