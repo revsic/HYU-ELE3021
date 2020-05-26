@@ -637,8 +637,6 @@ thread_epilogue(void) {
   panic("thread_epilogue: unreachable statements");
 }
 
-int last = 0;
-
 // Create thread with given user thread structure
 // and start routine.
 int
@@ -649,7 +647,6 @@ thread_create(struct uthread *u, void*(*start_routine)(void*), void *arg) {
   struct thread *t;
 
   acquire(&ptable.lock);
-  last = 2;
 
   // Find unused thread slot.
   p = myproc();
@@ -724,7 +721,6 @@ find:
   t->user_thread = u;
   t->state = RUNNABLE;
   release(&ptable.lock);
-  last = 0;
   return 0;
 }
 
