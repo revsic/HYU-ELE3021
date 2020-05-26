@@ -663,6 +663,7 @@ find:
   if ((t->kstack = kalloc()) == 0) {
     t->tid = 0;
     t->state = UNUSED;
+    release(&ptable.lock);
     return -1;
   }
   sp = t->kstack + KSTACKSIZE;
@@ -692,6 +693,7 @@ find:
     t->kstack = 0;
     t->tid = 0;
     t->state = UNUSED;
+    release(&ptable.lock);
     return -1;
   }
   // Update process size
