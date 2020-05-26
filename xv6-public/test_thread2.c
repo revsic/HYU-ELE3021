@@ -337,6 +337,7 @@ exittest1(void)
     }
   }
   sleep(1);
+  exit();
   return 0;
 }
 
