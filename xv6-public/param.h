@@ -18,4 +18,4 @@
 #define MAXPASS      10000000  // maximum number of pass.
 #define SCALEPASS    100000  // scaling pass.
 
-#define NTHREAD      10  // maximum number of threads.
+#define NTHREAD      16  // maximum number of threads.
