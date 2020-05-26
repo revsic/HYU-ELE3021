@@ -64,8 +64,9 @@ struct proc {
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
 
-  int tidx;
-  struct thread threads[NTHREAD];
+  int tidx;                         // index of running thread
+  struct thread threads[NTHREAD];   // thread pool
+  char* kstacks[NTHREAD];           // kernel stack pool
 
   struct {
     int level;                // scheduler level, -1 for stride, 0 ~ 3 for MLFQ
