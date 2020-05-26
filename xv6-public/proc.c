@@ -81,7 +81,7 @@ allocproc(void)
   struct proc *p;
   struct thread* t;
   char *sp;
-  char **iter;
+  int off;
 
   acquire(&ptable.lock);
 
@@ -106,9 +106,11 @@ found:
   mlfq_append(&mlfq, p, 0);
   release(&ptable.lock);
 
-  // Reset kernel stacks.
-  for (iter = p->kstacks; iter < &p->kstacks[NTHREAD]; ++iter)
-    *iter = 0;
+  // Reset stacks.
+  for (off = 0; off < NTHREAD; ++off) {
+    p->kstacks[off] = 0;
+    p->ustacks[off] = 0;
+  }
 
   // Allocate kernel stack.
   if((p->kstacks[0] = kalloc()) == 0){
@@ -327,6 +329,7 @@ wait(void)
           if (p->kstacks[off] != 0) {
             kfree(p->kstacks[off]);
             p->kstacks[off] = 0;
+            p->ustacks[off] = 0;
           }
           t->kstack = 0;
           t->state = UNUSED;
@@ -701,16 +704,21 @@ find:
   t->context->eip = (uint)forkret;
 
   // Allocate user stack.
-  sz = PGROUNDUP(p->sz);
-  if ((sz = allocuvm(p->pgdir, sz, sz + PGSIZE)) == 0) {
-    t->kstack = 0;
-    t->tid = 0;
-    t->state = UNUSED;
-    release(&ptable.lock);
-    return -1;
+  if (p->ustacks[tidx] != 0)
+    sz = p->ustacks[tidx];
+  else {
+    sz = PGROUNDUP(p->sz);
+    if ((sz = allocuvm(p->pgdir, sz, sz + PGSIZE)) == 0) {
+      t->kstack = 0;
+      t->tid = 0;
+      t->state = UNUSED;
+      release(&ptable.lock);
+      return -1;
+    }
+    
+    p->sz = sz;
+    p->ustacks[tidx] = sz;
   }
-  // Update process size
-  p->sz = sz;
 
   // Write argument for start routine.
   sp = (char*)sz;
