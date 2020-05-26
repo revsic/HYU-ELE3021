@@ -637,6 +637,8 @@ thread_epilogue(void) {
   panic("thread_epilogue: unreachable statements");
 }
 
+int last = 0;
+
 // Create thread with given user thread structure
 // and start routine.
 int
@@ -647,6 +649,7 @@ thread_create(struct uthread *u, void*(*start_routine)(void*), void *arg) {
   struct thread *t;
 
   acquire(&ptable.lock);
+  last = 2;
 
   // Find unused thread slot.
   p = myproc();
@@ -661,6 +664,7 @@ find:
   // Allocate new kernel stack for isolating space.
   t->tid = nexttid++;
   if ((t->kstack = kalloc()) == 0) {
+    t->tid = 0;
     t->state = UNUSED;
     return -1;
   }
@@ -686,8 +690,13 @@ find:
 
   // Allocate user stack.
   sz = PGROUNDUP(p->sz);
-  if ((sz = allocuvm(p->pgdir, sz, sz + PGSIZE)) == 0)
-    panic("thread_create: cannot allocate stack memory");
+  if ((sz = allocuvm(p->pgdir, sz, sz + PGSIZE)) == 0) {
+    kfree(t->kstack);
+    t->kstack = 0;
+    t->tid = 0;
+    t->state = UNUSED;
+    return -1;
+  }
   // Update process size
   p->sz = sz;
 
@@ -715,6 +724,7 @@ find:
   t->user_thread = u;
   t->state = RUNNABLE;
   release(&ptable.lock);
+  last = 0;
   return 0;
 }
 
