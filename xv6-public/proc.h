@@ -34,10 +34,11 @@ struct context {
 
 enum procstate { UNUSED, EMBRYO, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
 
+// User thread structure.
 struct uthread {
-  int tid;
-  int done;
-  void *retval;
+  int tid;                    // thread ID
+  int done;                   // whether thread is running done or not
+  void *retval;               // temporal return values
 };
 
 // Per-thread state
