@@ -101,11 +101,13 @@ exec(char *path, char **argv)
 
   for (t = curproc->threads; t < &curproc->threads[NTHREAD]; ++t) {
     if (t - curproc->threads == curproc->tidx) {
+      // Update eip and esp of current thread.
       t->tf->eip = elf.entry;
       t->tf->esp = sp;
       continue;
     }
-    
+
+    // Free other threads.
     if (t->state != UNUSED)
       kfree(t->kstack);
     
