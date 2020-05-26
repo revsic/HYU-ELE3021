@@ -186,7 +186,6 @@ UPROGS=\
 	_mlfqtests\
 	_stridetests\
 	_mastertests\
-	_threadtests\
 	_test_thread\
 	_test_thread2\
 
@@ -259,7 +258,7 @@ EXTRA=\
 	mkfs.c ulib.c user.h cat.c echo.c forktest.c grep.c kill.c\
 	ln.c ls.c mkdir.c rm.c stressfs.c usertests.c wc.c zombie.c\
 	printf.c umalloc.c yieldtests.c mlfqtests.c stridetests.c\
-	mastertests.c threadtests.c test_thread.c test_thread2.c\
+	mastertests.c test_thread.c test_thread2.c\
 	README dot-bochsrc *.pl toc.* runoff runoff1 runoff.list\
 	.gdbinit.tmpl gdbutil\
 
