@@ -34,13 +34,6 @@ struct context {
 
 enum procstate { UNUSED, EMBRYO, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
 
-// User thread structure.
-struct uthread {
-  int tid;                    // thread ID
-  int done;                   // whether thread is running done or not
-  void *retval;               // temporal return values
-};
-
 // Per-thread state
 struct thread {
   enum procstate state;         // thread state
@@ -49,7 +42,7 @@ struct thread {
   char *kstack;                 // bottom of kernel stack
   struct trapframe *tf;         // trap frame for current interrupt handler.
   struct context *context;      // cpu context, swtch() here to run process
-  struct uthread *user_thread;  // pointer of user thread structure
+  void* retval;                 // return value
 };
 
 // Per-process state
