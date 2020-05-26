@@ -102,7 +102,7 @@ racingthreadmain(void *arg)
 int
 racingtest(void)
 {
-  struct thread_t threads[NUM_THREAD];
+  thread_t threads[NUM_THREAD];
   int i;
   void *retval;
   gcnt = 0;
@@ -114,7 +114,7 @@ racingtest(void)
     }
   }
   for (i = 0; i < NUM_THREAD; i++){
-    if (thread_join(&threads[i], &retval) != 0 || (int)retval != i+1){
+    if (thread_join(threads[i], &retval) != 0 || (int)retval != i+1){
       printf(1, "panic at thread_join\n");
       return -1;
     }
@@ -141,7 +141,7 @@ basicthreadmain(void *arg)
 int
 basictest(void)
 {
-  struct thread_t threads[NUM_THREAD];
+  thread_t threads[NUM_THREAD];
   int i;
   void *retval;
   
@@ -152,7 +152,7 @@ basictest(void)
     }
   }
   for (i = 0; i < NUM_THREAD; i++){
-    if (thread_join(&threads[i], &retval) != 0 || (int)retval != i+1){
+    if (thread_join(threads[i], &retval) != 0 || (int)retval != i+1){
       printf(1, "panic at thread_join\n");
       return -1;
     }
@@ -176,7 +176,7 @@ jointhreadmain(void *arg)
 int
 jointest1(void)
 {
-  struct thread_t threads[NUM_THREAD];
+  thread_t threads[NUM_THREAD];
   int i;
   void *retval;
   
@@ -188,7 +188,7 @@ jointest1(void)
   }
   printf(1, "thread_join!!!\n");
   for (i = 1; i <= NUM_THREAD; i++){
-    if (thread_join(&threads[i-1], &retval) != 0 || (int)retval != i * 2 ){
+    if (thread_join(threads[i-1], &retval) != 0 || (int)retval != i * 2 ){
       printf(1, "panic at thread_join\n");
       return -1;
     }
@@ -200,7 +200,7 @@ jointest1(void)
 int
 jointest2(void)
 {
-  struct thread_t threads[NUM_THREAD];
+  thread_t threads[NUM_THREAD];
   int i;
   void *retval;
   
@@ -213,7 +213,7 @@ jointest2(void)
   sleep(500);
   printf(1, "thread_join!!!\n");
   for (i = 1; i <= NUM_THREAD; i++){
-    if (thread_join(&threads[i-1], &retval) != 0 || (int)retval != i * 2 ){
+    if (thread_join(threads[i-1], &retval) != 0 || (int)retval != i * 2 ){
       printf(1, "panic at thread_join\n");
       return -1;
     }
@@ -235,7 +235,7 @@ int
 stresstest(void)
 {
   const int nstress = 35000;
-  struct thread_t threads[NUM_THREAD];
+  thread_t threads[NUM_THREAD];
   int i, n;
   void *retval;
 
@@ -249,7 +249,7 @@ stresstest(void)
       }
     }
     for (i = 0; i < NUM_THREAD; i++){
-      if (thread_join(&threads[i], &retval) != 0){
+      if (thread_join(threads[i], &retval) != 0){
         printf(1, "panic at thread_join\n");
         return -1;
       }
