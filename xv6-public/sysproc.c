@@ -119,18 +119,18 @@ sys_set_cpu_share(void)
 int
 sys_thread_create(void)
 {
-  struct uthread *u;
+  int *tid;
   void*(*start_routine)(void*);
   void *arg;
 
-  if (argptr(0, (char**)&u, sizeof u) < 0)
+  if (argptr(0, (char**)&tid, sizeof tid) < 0)
     return -1;
   if (argptr(1, (char**)&start_routine, sizeof start_routine) < 0)
     return -1;
   if (argptr(2, (char**)&arg, sizeof arg) < 0)
     return -1;
 
-  return thread_create(u, start_routine, arg);
+  return thread_create(tid, start_routine, arg);
 }
 
 int
@@ -147,12 +147,12 @@ sys_thread_exit(void)
 int
 sys_thread_join(void)
 {
-  struct uthread *u;
+  int tid;
   void **retval;
-  if (argptr(0, (char**)&u, sizeof u) < 0)
+  if (argint(0, &tid) < 0)
     return -1;
   if (argptr(1, (char**)&retval, sizeof retval) < 0)
     return -1;
   
-  return thread_join(u, retval);
+  return thread_join(tid, retval);
 }
