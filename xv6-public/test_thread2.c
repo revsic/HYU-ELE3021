@@ -667,9 +667,9 @@ stridetest(void)
     printf(1, "panic at fork in stridetest\n");
     exit();
   } else if (pid == 0){
-    set_cpu_share(2);
+    set_cpu_share(30);
   } else{
-    set_cpu_share(10);
+    set_cpu_share(40);
   }
 
   for (i = 0; i < NUM_THREAD; i++){
@@ -689,10 +689,10 @@ stridetest(void)
   }
 
   if (pid == 0){
-    printf(1, " 2% : %d\n", gcnt);
+    printf(1, "30% : %d\n", gcnt);
     exit();
   } else{
-    printf(1, "10% : %d\n", gcnt);
+    printf(1, "40% : %d\n", gcnt);
     if (wait() == -1){
       printf(1, "panic at wait in stridetest\n");
       exit();
