@@ -207,7 +207,7 @@ growproc(int n)
 int
 fork(void)
 {
-  int i, pid;
+  int i, pid, tmp;
   struct proc *np;
   struct proc *curproc = myproc();
 
@@ -225,8 +225,21 @@ fork(void)
     np->state = UNUSED;
     return -1;
   }
+
   np->sz = curproc->sz;
   np->parent = curproc;
+
+  np->tidx = 0;
+  // Copy user stack pool.
+  for (i = 0; i < NTHREAD; ++i)
+    np->ustacks[i] = curproc->ustacks[i];
+
+  // Swap stacks of current thread index and index 0.
+  tmp = np->ustacks[0];
+  np->ustacks[0] = np->ustacks[curproc->tidx];
+  np->ustacks[curproc->tidx] = tmp;
+
+  // Copy trapframe, it will return to instruction `retn` of fork syscall.
   *np->threads->tf = *curproc->threads[curproc->tidx].tf;
 
   // Clear %eax so that fork returns 0 in the child.
