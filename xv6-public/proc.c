@@ -81,6 +81,7 @@ allocproc(void)
   struct proc *p;
   struct thread* t;
   char *sp;
+  char **iter;
 
   acquire(&ptable.lock);
 
@@ -105,12 +106,17 @@ found:
   mlfq_append(&mlfq, p, 0);
   release(&ptable.lock);
 
+  // Reset kernel stacks.
+  for (iter = p->kstacks; iter < &p->kstacks[NTHREAD]; ++iter)
+    *iter = 0;
+
   // Allocate kernel stack.
-  if((t->kstack = kalloc()) == 0){
+  if((p->kstacks[0] = kalloc()) == 0){
     p->state = UNUSED;
     t->state = UNUSED;
     return 0;
   }
+  t->kstack = p->kstacks[0];
   sp = t->kstack + KSTACKSIZE;
 
   // Leave room for trap frame.
@@ -213,6 +219,7 @@ fork(void)
     kfree(np->threads->kstack);
     np->threads->kstack = 0;
     np->threads->state = UNUSED;
+    np->kstacks[0] = 0;
     np->state = UNUSED;
     return -1;
   }
@@ -300,7 +307,7 @@ wait(void)
 {
   struct proc *p;
   struct thread *t;
-  int havekids, pid;
+  int havekids, pid, off;
   struct proc *curproc = myproc();
   
   acquire(&ptable.lock);
@@ -316,8 +323,11 @@ wait(void)
         pid = p->pid;
         // Free all zombie threads.
         for (t = p->threads; t < &p->threads[NTHREAD]; t++) {
-          if (t->state == ZOMBIE)
-            kfree(t->kstack);
+          off = t - p->threads;
+          if (p->kstacks[off] != 0) {
+            kfree(p->kstacks[off]);
+            p->kstacks[off] = 0;
+          }
           t->kstack = 0;
           t->state = UNUSED;
           t->tid = 0;
@@ -641,7 +651,7 @@ thread_epilogue(void) {
 // and start routine.
 int
 thread_create(struct uthread *u, void*(*start_routine)(void*), void *arg) {
-  int sz;
+  int tidx, sz;
   char *sp;
   struct proc *p;
   struct thread *t;
@@ -658,14 +668,18 @@ thread_create(struct uthread *u, void*(*start_routine)(void*), void *arg) {
   return -1;
 
 find:
-  // Allocate new kernel stack for isolating space.
+  tidx = t - p->threads;
   t->tid = nexttid++;
-  if ((t->kstack = kalloc()) == 0) {
+
+  // Allocate new kernel stack for isolating space.
+  if (p->kstacks[tidx] == 0 && (p->kstacks[tidx] = kalloc()) == 0) {
     t->tid = 0;
     t->state = UNUSED;
     release(&ptable.lock);
     return -1;
   }
+  // Assign allocated stack.
+  t->kstack = p->kstacks[tidx];
   sp = t->kstack + KSTACKSIZE;
 
   // Copy trapframe for recovering trivial bytes
@@ -689,7 +703,6 @@ find:
   // Allocate user stack.
   sz = PGROUNDUP(p->sz);
   if ((sz = allocuvm(p->pgdir, sz, sz + PGSIZE)) == 0) {
-    kfree(t->kstack);
     t->kstack = 0;
     t->tid = 0;
     t->state = UNUSED;
@@ -762,7 +775,6 @@ thread_join(struct uthread *u, void **retval) {
 
 found:
   // Free exit thread.
-  kfree(t->kstack);
   t->kstack = 0;
   t->state = UNUSED;
   t->tid = 0;
