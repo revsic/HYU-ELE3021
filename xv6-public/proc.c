@@ -92,6 +92,7 @@ allocproc(void)
   return 0;
 
 found:
+  // Set default process, thread states.
   p->state = EMBRYO;
   p->pid = nextpid++;
   p->tidx = 0;
@@ -313,6 +314,7 @@ wait(void)
       if(p->state == ZOMBIE){
         // Found one.
         pid = p->pid;
+        // Free all zombie threads.
         for (t = p->threads; t < &p->threads[NTHREAD]; t++) {
           if (t->state == ZOMBIE)
             kfree(t->kstack);
@@ -387,6 +389,9 @@ sched(void)
   mycpu()->intena = intena;
 }
 
+// Context switching between threads.
+// It do not reload the cr3 but update only address of kernel stack
+// for previlege escalation.
 void
 next_thread(struct proc* p) {
   int intena;
@@ -394,24 +399,30 @@ next_thread(struct proc* p) {
   struct thread* t = &p->threads[p->tidx];
   acquire(&ptable.lock);
 
+  // Find runnable thread.
   for (iter = t + 1; ; ++iter) {
     if (iter == &p->threads[NTHREAD])
       iter = p->threads;
     if (iter == t) {
+      // If runnable thread does not exist and
+      // current thread is also not runnable.
       if (t->state != RUNNING) {
         sched();
         panic("next_thread cannot run thread");
       }
       break;
     }
-    
+
+    // If runnable thread found.
     if (iter->state == RUNNABLE) {
       t->state = RUNNABLE;
       iter->state = RUNNING;
 
+      // Update running thread index.
       p->tidx = iter - p->threads;
       switchuvm_thread(p);
 
+      // Context switch.
       intena = mycpu()->intena;
       swtch(&t->context, iter->context);
       mycpu()->intena = intena;
@@ -605,6 +616,8 @@ set_cpu_share(int percent)
   return mlfq_cpu_share(&mlfq, myproc(), percent);
 }
 
+// End of thread, make thread state zombie
+// and update user thread.
 void
 thread_epilogue(void) {
   struct proc *p;
@@ -615,6 +628,7 @@ thread_epilogue(void) {
   p = myproc();
   t = &p->threads[p->tidx];
 
+  // Update thread state.
   t->state = ZOMBIE;
   t->user_thread->done = 1;
   wakeup1(t->user_thread);
@@ -623,6 +637,8 @@ thread_epilogue(void) {
   panic("thread_epilogue: unreachable statements");
 }
 
+// Create thread with given user thread structure
+// and start routine.
 int
 thread_create(struct uthread *u, void*(*start_routine)(void*), void *arg) {
   int sz;
@@ -632,6 +648,7 @@ thread_create(struct uthread *u, void*(*start_routine)(void*), void *arg) {
 
   acquire(&ptable.lock);
 
+  // Find unused thread slot.
   p = myproc();
   for (t = p->threads; t < &p->threads[NTHREAD]; ++t)
     if (t->state == UNUSED)
@@ -641,6 +658,7 @@ thread_create(struct uthread *u, void*(*start_routine)(void*), void *arg) {
   return -1;
 
 find:
+  // Allocate new kernel stack for isolating space.
   t->tid = nexttid++;
   if ((t->kstack = kalloc()) == 0) {
     t->state = UNUSED;
@@ -648,35 +666,49 @@ find:
   }
   sp = t->kstack + KSTACKSIZE;
 
+  // Copy trapframe for recovering trivial bytes
+  // (segment registers, etc..)
   sp -= sizeof *t->tf;
   t->tf = (struct trapframe*)sp;
   *t->tf = *p->threads[p->tidx].tf;
 
+  // Second return address is trapret.
   sp -= 4;
   *(uint*)sp = (uint)trapret;
 
+  // Clear context.
   sp -= sizeof *t->context;
   t->context = (struct context*)sp;
   memset(t->context, 0, sizeof *t->context);
+
+  // First return address is forkret.
   t->context->eip = (uint)forkret;
 
+  // Allocate user stack.
   sz = PGROUNDUP(p->sz);
   if ((sz = allocuvm(p->pgdir, sz, sz + 2 * PGSIZE)) == 0)
     panic("thread_create: cannot allocate stack memory");
-
+  // Make a page inaccessible and use other one.
   clearpteu(p->pgdir, (char*)(sz - 2 * PGSIZE));
   p->sz = sz;
 
+  // Write argument for start routine.
   sp = (char*)sz;
   sp -= 4;
   *(uint*)sp = (uint)arg;
 
+  // Return address of start routine.
+  // This is just immitation, because user cannot access
+  // kernel code of thread_epilogue,
+  // so the call of syscall thread_exit is necessary on user level code.
   sp -= 4;
   *(uint*)sp = (uint)thread_epilogue;
 
+  // Third return address is start_routine.
   t->tf->esp = (uint)sp;
   t->tf->eip = (uint)start_routine;
 
+  // Initialize user thread structure.
   u->tid = t->tid;
   u->done = 0;
   u->retval = 0;
@@ -687,6 +719,7 @@ find:
   return 0;
 }
 
+// Exit thread, write return value and run epilogue of thread.
 void
 thread_exit(void *retval) {
   struct proc *p = myproc();
@@ -694,12 +727,16 @@ thread_exit(void *retval) {
   thread_epilogue();
 }
 
+// Wait until thread is done.
+// It acts like `wait` on exit process.
+// It clean up the exit thread and write the return value.
 int
 thread_join(struct uthread *u, void **retval) {
   struct proc* p;
   struct thread* t;
 
   acquire(&ptable.lock);
+  // Wait until target thread is done.
   do {
     if (u->done)
       break;
@@ -708,6 +745,7 @@ thread_join(struct uthread *u, void **retval) {
   } while (0);
 
   p = myproc();
+  // Find zombie thread.
   for (t = p->threads; t < &p->threads[NTHREAD]; ++t)
     if (t->state == ZOMBIE)
       goto found;
@@ -716,12 +754,14 @@ thread_join(struct uthread *u, void **retval) {
   return -1;
 
 found:
+  // Free exit thread.
   kfree(t->kstack);
   t->kstack = 0;
   t->state = UNUSED;
   t->tid = 0;
   t->user_thread = 0;
 
+  // Write return value.
   *retval = u->retval;
   release(&ptable.lock);
   return 0;
