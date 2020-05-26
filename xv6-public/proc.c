@@ -686,10 +686,9 @@ find:
 
   // Allocate user stack.
   sz = PGROUNDUP(p->sz);
-  if ((sz = allocuvm(p->pgdir, sz, sz + 2 * PGSIZE)) == 0)
+  if ((sz = allocuvm(p->pgdir, sz, sz + PGSIZE)) == 0)
     panic("thread_create: cannot allocate stack memory");
-  // Make a page inaccessible and use other one.
-  clearpteu(p->pgdir, (char*)(sz - 2 * PGSIZE));
+  // Update process size
   p->sz = sz;
 
   // Write argument for start routine.
