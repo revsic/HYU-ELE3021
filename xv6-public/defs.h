@@ -10,7 +10,6 @@ struct sleeplock;
 struct stat;
 struct superblock;
 
-struct uthread;
 struct stride;
 struct mlfq;
 
@@ -127,9 +126,9 @@ void            wakeup(void*);
 void            yield(void);
 int             getlev(void);
 int             set_cpu_share(int);
-int             thread_create(struct uthread*, void*(*)(void*), void*);
+int             thread_create(int*, void*(*)(void*), void*);
 void            thread_exit(void*);
-int             thread_join(struct uthread*, void**);
+int             thread_join(int, void**);
 
 // swtch.S
 void            swtch(struct context**, struct context*);
