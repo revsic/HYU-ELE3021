@@ -397,8 +397,13 @@ next_thread(struct proc* p) {
   for (iter = t + 1; ; ++iter) {
     if (iter == &p->threads[NTHREAD])
       iter = p->threads;
-    if (iter == t)
+    if (iter == t) {
+      if (t->state != RUNNING) {
+        sched();
+        panic("next_thread cannot run thread");
+      }
       break;
+    }
     
     if (iter->state == RUNNABLE) {
       t->state = RUNNABLE;
