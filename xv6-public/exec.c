@@ -108,9 +108,12 @@ exec(char *path, char **argv)
     }
 
     // Free other threads.
-    if (t->state != UNUSED)
-      kfree(t->kstack);
-    
+    off = t - curproc->threads;
+    if (curproc->kstacks[off] != 0) {
+      kfree(curproc->kstacks[off]);
+      curproc->kstacks[off] = 0;
+    }
+
     t->kstack = 0;
     t->state = UNUSED;
     t->tid = 0;
