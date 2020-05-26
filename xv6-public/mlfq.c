@@ -12,6 +12,7 @@ extern int sys_uptime(void);
 
 static struct proc* MLFQ_PROC = (struct proc*)-1;
 
+// Check whether given process has runnable threads.
 static int
 runnable(struct proc* p) {
   struct thread* t;
@@ -124,6 +125,7 @@ stride_update(struct stride* this, struct proc* p) {
 }
 
 // Get next process based on stride scheduling policy.
+// Write runnable thread index if exists.
 struct proc*
 stride_next(struct stride* this, int* tidx) {
   int idx;
@@ -249,6 +251,7 @@ mlfq_update(struct mlfq* this, struct proc* p, uint ctime)
 
 // Get next process with MLFQ scheduling policy.
 // If it returns zero, it means nothing runnaable.
+// Write runnable thread index to given argument `tidx`.
 struct proc*
 mlfq_next(struct mlfq* this, int* tidx)
 {
@@ -358,6 +361,7 @@ mlfq_scheduler(struct mlfq* this, struct spinlock* lock)
           break;
         }
 
+        // Update index of the current running thread.
         p->tidx = idx;
       }
 
