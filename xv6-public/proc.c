@@ -420,7 +420,7 @@ next_thread(struct proc* p) {
 
       // Update running thread index.
       p->tidx = iter - p->threads;
-      switchuvm_thread(p);
+      switch_trap_kstack(p);
 
       // Context switch.
       intena = mycpu()->intena;

@@ -179,8 +179,10 @@ switchuvm(struct proc *p)
   popcli();
 }
 
+// Switch default kernel stack for trap,
+// syscall and privilege escalation.
 void
-switchuvm_thread(struct proc *p)
+switch_trap_kstack(struct proc *p)
 {
   struct thread *t;
   if(p == 0)
@@ -188,10 +190,9 @@ switchuvm_thread(struct proc *p)
   t = &p->threads[p->tidx];
   if(t->kstack == 0)
     panic("switchuvm: no kstack");
-  if(p->pgdir == 0)
-    panic("switchuvm: no pgdir");
 
   pushcli();
+  // switch default kernel stack to current thread.
   mycpu()->ts.esp0 = (uint)t->kstack + KSTACKSIZE;
   popcli();
 }
