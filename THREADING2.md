@@ -88,7 +88,210 @@ switch_trap_kstack(struct proc *p)
 
 ## 2. Test result
 
+전체 스크린샷은 [rsrc](./rsrc)를 확인한다.
 
+0. racingtest
+
+Racing test는 공유 자원 `gcnt`를 두고 10개의 스레드가 동시에 접근해서 increase operation을 진행했을 때 data race 문제로 정상적인 sum이 나오지 않음을 확인하는 문제이다.
+
+```
+0. racingtest start
+25178248
+0. racingtest finish
+```
+
+실제로 10개 스레드 1억번의 increase 결과 턱없이 적은 숫자가 나온 것을 확인할 수 있었다.
+
+1. basictest
+
+Basic test는 thread의 생성과 종료, join 과정에 다른 오류가 없었는지, return value는 적절히 전달되었는지를 확인한다.
+
+```
+1. basictest start
+01234256789013424013567892134056789123405678958967
+1. basictest finish
+```
+
+2. jointtest1
+
+첫 번째 Join test는 test 내부에 [sleep - thread_exit] 페어를 통해 종료 시각을 늦추고, join이 먼저 호출되어 정상적으로 sleep, wakeup이 가능하지 확인한다.
+
+```
+2. jointest1 start
+thread_join!!!
+thread_exit...
+thread_exit...
+thread_exit...
+thread_exit...
+thread_exit...
+thread_exit...
+thread_exthread_exit...
+it...
+thread_exit...
+thread_exit...
+
+2. jointest1 finish
+```
+
+3. jointest2
+
+두 번쨰 join test는 main thread에서 thread보다 더 오랜 sleep을 통해 join의 호출 시점을 늦추고, 이미 종료된 thread에 대해서 정상적인 behavior를 보여주는지 확인한다.
+
+```
+3. jointest2 start
+thread_exit...
+thread_exit...
+thread_exit...
+thread_exit...
+thread_exit...
+thread_exit...
+threthread_exit...
+ad_exit...
+thread_exit...
+thread_exit...
+thread_join!!!
+
+3. jointest2 finish
+```
+
+4. stresstest
+
+Stress test는 최대 10개 thread를 35000번 생성, 종료했을 때 memory allocation 등 별다른 오류 없이 정상 작동하는지 확인하는 테스트이다.
+
+```
+4. stresstest start
+1000
+2000
+3000
+4000
+// ...
+33000
+34000
+35000
+
+4. stresstest finish
+```
+
+5. exittest1
+
+첫 번째 exit test는 메인 스레드가 종료되었을 때 다른 스레드가 같이 종료되는지를 확인하는 테스트이다. 명확한 exit 없이 종료된다면 자식 스레드는 모두 zombie가 되어 무한 대기 상태일 것이라 여겨 exit을 추가하였지만, 간헐적으로 무한히 기다리는 것으로 보아 추가 실험 및 보수가 필요하다.
+
+```
+5. exittest1 start
+thread_exit ...
+thread_exit ...
+thread_exit ...
+thread_exit ...
+thread_exit ...
+tthread_exit ...
+thread_exit ...
+thread_exit ...
+thread_exit ...
+thread_exit ...
+thread_exit ...
+thread_exit ...
+thread_exit ...
+QEMU: Terminated
+```
+
+6. exittest2
+
+두 번째 exit test는 thread에서 exit을 호출하였을 때 모든 LWP가 종료되는지 확인하는 테스트이다.
+
+```
+6. exittest2 start
+6. exittest2 finish
+```
+
+7. forktest
+
+Fork test는 스레드 내부에서 fork를 호출하였을 때, 해당 프로세스에서 uvm을 복사하고, 해당 thread의 instruction flow를 따라 실행해 갈 수 있는지 확인한다. 
+
+테스트에서는 parent와 child를 출력하도록 해두었으니, 10개 스레드에서 각각 10번의 parent와 child 호출이 있었는지 확인한다.
+
+```
+7. forktest start
+parent
+child
+parent
+child
+parent
+child
+parent
+child
+parent
+child
+parent
+child
+parent
+child
+parent
+child
+parent
+child
+parent
+child
+7. forktest finish
+```
+
+8. exectest
+
+Exec test는 child thread에서 exec를 호출하였을 떄 전체 LWP가 정리되고, 하나의 LWP에서만 exec가 호출되는지 확인한다.
+
+테스트에서는 echo를 실행해 보았다. 10개의 스레드에서 호출하였어도 하나의 echo만 실행되어야 한다.
+
+```
+8. exectest start
+echo is executed!
+8. exectest finish
+```
+
+9. sbrktest
+
+Sbrk 테스트는 10개의 스레드가 동시에 uvm 확장을 요청했을 때, serializable한 action이 진행되었는지 확인한다.
+
+```
+9. sbrktest start
+9. sbrktest finish
+```
+
+10. killtest
+
+Kill test는 스레드에서 kill이 호출되었을 때 관련 스레드를 모두 정리하고 프로세스가 정상 종료되는지 확인한다.
+
+```
+10. killtest start
+10. killtest finish
+```
+
+11. pipetest
+
+Pipe test는 스레드 환경에서도 pipe가 duplication이나 lose가 발생하지 않고 정상 작동하는지 확인한다.
+
+```
+11. pipetest start
+11. pipetest finish
+```
+
+12. sleeptest
+
+Sleep test는 main thread보다 오래 sleep 하는 thread에 대해 main thread가 종료되었을 때 같이 종료되는지 확인한다.
+
+```
+12. sleeptest start
+12. sleeptest finish
+```
+
+13. stridetest 
+
+Stride test는 stride scheduling 된 프로세스에서 실행된 thread도 같은 비중의 cpu share를 받는지 확인한다.
+
+```
+13. stridetest start
+40% : 773998806
+30% : 538293580
+13. stridetest finish
+```
 
 ## 3. Problems
 
