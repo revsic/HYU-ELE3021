@@ -297,10 +297,18 @@ Stride test는 stride scheduling 된 프로세스에서 실행된 thread도 같�
 
 **Page fault**
 
+[proc.c](./xv6-public/proc.c)의 `next_thread`에서 기존의 scheduler와 같이 `switchkvm`을 swtch 후에 두었는데, 이것이 CR3를 업데이트하고, `switchuvm` 없이 `switch_trap_kstack`만을 호출하여 thread switching을 진행하다 보니 user page를 page directory에서 찾을 수 없어 page fault가 발생하였음. 
+
+[wiki.osdev.org](https://wiki.osdev.org/Exceptions#Page_Fault)를 참고하여 page fault의 error code를 확인하고, call stack을 따라 `write` syscall 호출부에서 발생함을 알게 되어, kvm으로의 switching 없이 바로 thread switching을 하여 고칠 수 있었음.
+
 **Double acquire**
+
+stack pool이 없는 상황에서 stresstest를 진행하다 보니 user memory allocation이 안되는 순간이 왔음. 하지만 acquire 한 ptable lock을 `thread_create`에서는 release 없이 return을 하였고, panic이 터지면서 `consolewrite` 함수에서 호출한 `wakeup`이 ptable lock을 다시 acquire 하려다 커널에 크래쉬가 발생함.
+
+일차적인 해결을 위해 `thread_create`의 모든 return 부분에 release ptable lock을 추가함.
 
 **Kernel, user stack pool**
 
-**Fork**
+stack 공간을 위한 user memory allocation은 `allocuvm`함수를 이용하였는데, 이 함수는 단방향으로 작동하여 중간의 일정 메모리를 해제하고 할당하는 것이 불가능함. 이에 uvm의 할당 해제 없이 스레드가 생길 때마다 stack 공간을 할당하였고, stresstest에서 memory allocation에 실패함. 
 
-
+이를 해결하기 위해 process에 kernel, user stack pool을 준비하고, 한번 할당되면 프로세스가 종료될 때까지 남아 있으면서 thread가 생성될 때마다 1page씩 할당해 주는 역할을 함. 이를 통해 메모리를 재사용하고, 최대 NTHREAD 이상의 할당이 일어나지 않게 됨.
