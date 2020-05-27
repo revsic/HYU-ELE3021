@@ -293,7 +293,7 @@ Stride test는 stride scheduling 된 프로세스에서 실행된 thread도 같�
 13. stridetest finish
 ```
 
-## 3. Problems
+## 3. Solved Problems
 
 **Page fault**
 
