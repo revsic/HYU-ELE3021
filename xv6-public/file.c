@@ -155,15 +155,17 @@ filewrite(struct file *f, char *addr, int n)
   panic("filewrite");
 }
 
+// Read from file f.
 int
 filepread(struct file *f, char *addr, int n, int offset)
 {
   int r;
-
+  // Accept only inode.
   if (f->readable == 0 || f->type != FD_INODE)
     return -1;
-  
+
   ilock(f->ip);
+  // Do not update f->off, only return number of read bytes.
   r = readi(f->ip, addr, f->off + offset, n);
   iunlock(f->ip);
   return r;
@@ -174,7 +176,7 @@ int
 filepwrite(struct file *f, char *addr, int n, int offset)
 {
   int r;
-
+  // Accept only inode.
   if (f->writable == 0 || f->type != FD_INODE)
     return -1;
 
