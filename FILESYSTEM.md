@@ -85,4 +85,79 @@ xv6는 이러한 file을 가리키는 file descriptor, fd를 두고 disk를 향�
 
 ## 2. pread, pwrite
 
+기존의 `read`, `write` system call은 [file.c](./xv6-public/file.c)의 `fileread`와 `filewrite`의 실행을 구성하고 있다.
+
+기본적으로 두 메소드는 읽거나 쓴 byte의 수만큼 stream을 advance하는 side-effect를 가지고 있다. 이는 코드상에서 file 구조체의 offset member에 byte 수를 더하는 방식으로 구현되어 있다.
+
+```c
+// in fileread
+if((r = readi(f->ip, addr, f->off, n)) > 0)
+  f->off += r;
+
+// in filewrite
+if ((r = writei(f->ip, addr + i, f->off, n1)) > 0)
+  f->off += r;
+```
+
+기존의 unix system에서 read와 write 메소드를 통해 원하는 곳에 값을 쓰기 위해서는 `lseek`과 같은 메소드를 통해 현재 offset에서 원하는 위치로 이동한 후, 값을 써야 한다. 즉 [lseek - read/write]의 pair로 atomic 한 구성을 띄지 않아 multi-thread 환경에서 하나의 file descriptor에 데이터를 쓰고자 한다면 원하는 곳에 값을 쓰기가 쉽지 않다. 
+
+이를 해결하기 위해서 stream을 advance 하는 side-effect도 제거하고, offset을 인자로 받아 [lseek - read/write]를 하나의 atomic 한 메소드로 구현한 것이 `pread`와 `pwrite`이다.
+
+### Implmentation
+
+[file.c](./xv6-public/file.c)에 두 개의 새로운 메소드 `filepread`와 `filepwrite`를 구성하였다. 
+
+`filepread`는 입력으로 inode의 file descriptor만을 취급하고, `pread`와 동일히 동작하지만 `f->off`의 stream advance를 진행하지 않는다.
+
+```c
+// in filepread
+r = readi(f->ip, addr, f->off + offset, n);
+```
+
+`filepwrite` 또한 마찬가지로 입력으로 inode file descriptor만을 취급한다. `pwrite`가 while-loop 내에서 inode lock을 acquire/release 하는 것에 반해, inode에 주어진 하나의 write operation이 atomicity를 가져야 한다고 생각하여 inode lock의 acquire/release를 while-loop 밖으로 이동하였다.
+
+```c
+// in filepwrite
+begin_op();
+ilock(f->ip);
+
+while (i < n) {
+  // ...
+}
+
+iunlock(f->ip);
+end_op();
+```
+
+`filepread`와 마찬가지로 `f->off`의 stream advance 역시 진행하지 않는다.
+
+```c
+if ((r = writei(f->ip, addr + i, off, n1)) > 0)
+  // do not update f->off
+  off += r;
+```
+
+이렇게 구현된 `filepread`와 `filepwrite`는 `pread`, `pwrite`의 새로운 syscall을 통해 user가 접근할 수 있다.
+
+### Test
+
+[test_pwrite.c](./xv6-public/test_pwrite.c)에는 pwrite와 pread 메소드를 위한 몇 가지 테스트가 구현되어 있다. 
+
+- test_pwrite1: 파일을 새로 만들고 pwrite의 기본적인 작동 여부를 검사한다. 
+- test_pwrite2: 새로운 파일에 write를 진행하여 stream을 advance 시키고, 해당 시점부터 pwrite가 정상 작동하는지 검사한다.
+- test_pwrite3: pwrite는 maximum log transaction size의 영향으로, 크기가 큰 write operation은 분할하여 진행한다. 이의 정상작동을 확인하기 위해 page size의 write operation을 진행하여 결과를 확인한다.
+- test_pread1: pread의 기본적인 작동 여부를 검사한다.
+- test_pread2: read를 진행하여 stream을 advance 시키고, 해당 시점부터 pread가 정상 작동하는지 검사한다.
+
+테스트 결과 모두 정상작동하였다.
+
+```
+$ test_pwrite
+test_pwrite1 done
+test_pwrite2 done
+test_pwrite3 done
+test_pread1 done
+test_pread2 done
+```
+
 ## 3. Buffer caching
