@@ -179,3 +179,37 @@ test_pread2 done
 ```
 
 ## 3. Buffer caching
+
+현재의 xv6는 disk에 값을 쓸 가능성이 있는 operation을 실행할 때 [log.c](./xv6-public/log.c)에 있는 `begin_op`와 `end_op`로 이를 감싸야 한다.
+
+inode를 시작으로 data block에 값을 쓰기까지의 모든 write operation이 atomic 해야 data consistency를 유지할 수 있으므로 xv6는 하나의 operation이 발생하는 동안에 disk write 요청이 오면 buffer cache에 이를 보관하고, log에 해당 buffer의 변경 사항을 기록한다. 이후 commit이 발생하면 해당 log를 먼저 disk에 작성하고, 변경된 buffer를 disk에 복사하여 crash와 inconsistency에 대응한다. 이를 Write Ahead Logging (WAL) policy로 지칭한다.
+
+실제로 crash가 발생했다고 가정할 때 log 작성 중에 발생한다면 commit까지의 write operation을 취소하면 될 것이고, disk 작성 중에 crash가 난다면 redo를 통해 해당 crash로부터 작업을 복원할 수 있을 것이다.
+
+xv6에서는 `begin_op`를 통해 transaction의 시작을 요청하고, `end_op`를 통해 그 끝을 알릴 수 있다. begin_op에서는 현재 log가 commit 작업을 수행하고 있거나, 감당할 수 있는 최대 트랜잭션 수를 넘었는지 확인하여 syscall의 transaction 설립을 허가하거나 sleep 시킨다. end_op에서는 log가 수행 중인 트랜잭션의 수를 확인하여 현재 syscall이 마지막 트랜잭션일 떄 commit을 수행하고, log를 초기화한다.
+
+xv6에서는 이에 begin_op와 end_op 사이에서 disk writing을 수행할 때 [bio.c](./xv6-public/bio.c)의 bwrite를 직접 수행하지 않고, [log.c](./xv6-public/log.c)의 `log_write`를 통해 단순 dirty buffer cache를 log에 연결한다. 
+
+```c
+// in commit
+write_log();     // Write modified blocks from cache to log
+write_head();    // Write header to disk -- the real commit
+install_trans(); // Now install writes to home locations
+log.lh.n = 0;
+write_head();    // Erase the transaction from the log
+```
+
+실제 xv6의 log는 다른 metadata 없이 dirty buffer의 content만으로 구성된다. commit 함수에서 `write_log`는 WAL에 따라 log를 disk에 내리는 작업을 수행한다. 실제로는 dirty buffer의 content를 log block에 순차적으로 복사하는 작업을 수행한다.
+
+```c
+struct logheader {
+  int n;
+  int block[LOGSIZE];
+};
+```
+
+이후 `write_head`에서 실질적인 log 작성 이후 log header에 몇 개의 log가 기록되었는지 disk에 작성하여, 이 시점부터 crash가 나도 redo가 가능하다. 실질적인 commit 행위가 되는 것이다. 이후에는 `install_trans`에 의해 실제 block number를 기반으로 buffer cache의 변경사항을 data block에 작성한다. 마지막으로 log header에 잔여 log 수를 0으로 초기화하여 disk에 작성함으로써 commit을 마치고 durability를 얻을 수 있게 된다.
+
+즉 bio의 buffer cache는 dirty가 되더라도 cache level에서 disk에 값을 쓰지 않고, dirty flag를 set하여 eviction 없이 cache에 잔존하다가 log policy에 의해 disk에 쓰이게 된다.
+
+이러한 mechanism을 가질 때 log는 최대 LOGSIZE를 채우지 않더라도 standing하고 있는 syscall이 없다면 곧장 commit을 수행한다. 이번 프로젝트에서는 write syscall이 buffer cache에 상존하다가 sync syscall이 오면 commit을 하는 방식으로 수정한다.
