@@ -83,6 +83,24 @@ xv6는 이러한 file을 가리키는 file descriptor, fd를 두고 disk를 향�
 
 ## 1. Expand maximum file size
 
+현재 xv6의 inode는 addrs 멤버에서 데이터가 작성된 block num을 관리하고 있다. 이때 NDIRECT만큼의 addrs는 데이터가 존재하는 block을 직접 지칭하고 있고, 부가적으로 존재하는 하나의 addr은 indirect block의 block num을 저장하고 있다.
+
+indirect block은 또다시 block num을 가리키고 있으며, [NINDIRECT = BSIZE / sizeof(uint)] 만큼의 추가 데이터 블럭을 구성할 수 있게 해준다.
+
+결과적으로 현재 xv6는 하나의 inode가 [MAXFILE = NDIRECT + NINDIRECT = 140]개의 BLOCK을 소유할 수 있다. 이것이 파일 최대 크기 [MAXFILE * BSIZE = 140 * 512 = 71,680], 대략 71kb 정도로 나타난 것이다.
+
+이를 확장하기 위해서는 다계층의 indirect block을 addr에 저장하고 있어야 한다. 현재는 하나의 indirect block으로 구성된 single indirection으로 구성되어 있다. 이를 하나의 indirect block이 또 다른 indirect block을 가리키는 multiple-indirection으로 구성한다면 하나의 inode는 더 많은 data block을 소유할 수 있다. 
+
+예로 double indirection은 NINDIRECT의 제곱만큼 data block을 소유할 수 있고, triple indirection은 NINDIRECT의 세제곱만큼 data block을 소유할 수 있다. 하지만 조건 없이 multiple-indirect block을 늘려나간다면, 하나의 data block을 찾기 위해 disk의 여러 block에 방문해야 하고, 접근 속도는 더 느려지게 된다.
+
+이에 direct block을 두고, indirect block을 수준별로 하나씩 두면서 크기를 늘려나가는 구조를 선택하면 [MAXFILE = NDIRECT + sum of NINDIRECT ^ k]의 최대 data block 수를 가지게 된다.
+
+구현의 예로 NDIRECT = 12, 최대 triple indirection까지 허용한다면 [MAXFILE = 12 + sum of 128 ^ k = 2,113,676]의 block 수와 최대 1GB 정도의 파일 크기를 가질 수 있다.
+
+### Implementation
+
+### Test
+
 ## 2. pread, pwrite
 
 기존의 `read`, `write` system call은 [file.c](./xv6-public/file.c)의 `fileread`와 `filewrite`의 실행을 구성하고 있다.
