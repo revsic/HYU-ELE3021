@@ -155,3 +155,62 @@ filewrite(struct file *f, char *addr, int n)
   panic("filewrite");
 }
 
+int
+filepread(struct file *f, char *addr, int n, int offset)
+{
+  int r;
+
+  if (f->readable == 0 || f->type != FD_INODE)
+    return -1;
+  
+  ilock(f->ip);
+  r = readi(f->ip, addr, f->off + offset, n);
+  iunlock(f->ip);
+  return r;
+}
+
+// Write to file f without update offset.
+int
+filepwrite(struct file *f, char *addr, int n, int offset)
+{
+  int r;
+
+  if (f->writable == 0 || f->type != FD_INODE)
+    return -1;
+
+  // write a few blocks at a time to avoid exceeding
+  // the maximum log transaction size, including
+  // i-node, indirect block, allocation blocks,
+  // and 2 blocks of slop for non-aligned writes.
+  // this really belongs lower down, since writei()
+  // might be writing a device like the console.  
+  int max = ((MAXOPBLOCKS-1-1-2) / 2) * 512;
+  int i = 0;
+  int off = f->off + offset;
+
+  // lock before loop, make write operation thread-safe
+  begin_op();
+  ilock(f->ip);
+
+  while (i < n) {
+    int n1 = n - i;
+    if (n1 > max)
+      n1 = max;
+
+    if ((r = writei(f->ip, addr + i, off, n1)) > 0)
+      // do not update f->off
+      off += r;
+    
+    if (r < 0)
+      break;
+    if (r != n1)
+      panic("short filewrite");
+    
+    i += r;
+  }
+
+  iunlock(f->ip);
+  end_op();
+
+  return i == n ? n : -1;
+}
