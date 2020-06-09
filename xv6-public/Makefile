@@ -188,6 +188,7 @@ UPROGS=\
 	_mastertests\
 	_test_thread\
 	_test_thread2\
+	_test_pwrite\
 
 fs.img: mkfs README $(UPROGS)
 	./mkfs fs.img README $(UPROGS)
