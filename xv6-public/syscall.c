@@ -97,6 +97,8 @@ extern int sys_mkdir(void);
 extern int sys_mknod(void);
 extern int sys_open(void);
 extern int sys_pipe(void);
+extern int sys_pread(void);
+extern int sys_pwrite(void);
 extern int sys_read(void);
 extern int sys_sbrk(void);
 extern int sys_sleep(void);
@@ -139,6 +141,8 @@ static int (*syscalls[])(void) = {
 [SYS_thread_create]   sys_thread_create,
 [SYS_thread_exit]     sys_thread_exit,
 [SYS_thread_join]     sys_thread_join,
+[SYS_pwrite]  sys_pwrite,
+[SYS_pread]   sys_pread,
 };
 
 void

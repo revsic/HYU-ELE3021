@@ -10,6 +10,8 @@ int wait(void);
 int pipe(int*);
 int write(int, const void*, int);
 int read(int, void*, int);
+int pwrite(int, const void*, int, int);
+int pread(int, void*, int, int);
 int close(int);
 int kill(int);
 int exec(char*, char**);
